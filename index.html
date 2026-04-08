@@ -139,6 +139,23 @@
       padding: 12px;
     }
 
+    .direction-bar {
+      padding: 8px 14px;
+      display: flex;
+      justify-content: center;
+    }
+    #direction-btn {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.82rem;
+      padding: 6px 16px;
+      transition: border-color 0.15s, color 0.15s;
+    }
+    #direction-btn:active { border-color: var(--accent); color: var(--accent); }
+
     .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
 
     .result-area {
@@ -327,12 +344,15 @@
       </div>
       <div class="input-actions">
         <button class="btn-mic" id="mic-btn" onclick="toggleMic()" title="語音輸入">🎤</button>
-        <button class="btn-translate" onclick="translateNow()">翻譯成英文 →</button>
+        <button class="btn-translate" onclick="translateNow()" id="translate-btn">翻譯成英文 →</button>
         <button class="btn-clear" onclick="clearAll()">清除</button>
+      </div>
+      <div class="direction-bar">
+        <button id="direction-btn" onclick="toggleDirection()">中文 → English &nbsp;⇄</button>
       </div>
       <hr class="divider">
       <div class="result-area">
-        <div class="result-label">English</div>
+        <div class="result-label" id="result-label">English</div>
         <div id="result-text" class="placeholder">翻譯結果會顯示在這裡</div>
         <button class="copy-btn" id="copy-btn" onclick="copyResult()" style="display:none">複製英文 📋</button>
       </div>
@@ -477,6 +497,7 @@ let groqApiKey = localStorage.getItem('groq_api_key') || '';
 let mediaRecorder = null;
 let audioChunks = [];
 let isRecording = false;
+let translationMode = 'zh-en'; // 'zh-en' | 'en-zh'
 
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('main-screen').style.display = 'flex';
@@ -508,10 +529,13 @@ async function translateNow() {
 
   setStatus('翻譯中…');
 
-  const textToTranslate = preprocessText(rawText);
+  const isZhEn = translationMode === 'zh-en';
+  const textToTranslate = isZhEn ? preprocessText(rawText) : rawText;
+  const sl = isZhEn ? 'zh-TW' : 'en';
+  const tl = isZhEn ? 'en' : 'zh-TW';
 
   try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-TW&tl=en&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(textToTranslate)}`;
     const response = await fetch(url);
 
     if (!response.ok) throw new Error(`翻譯失敗（${response.status}）`);
@@ -604,10 +628,14 @@ async function transcribeWithGroq(audioBlob, mimeType) {
   const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
   const formData = new FormData();
   formData.append('file', audioBlob, `audio.${ext}`);
+  const lang = translationMode === 'zh-en' ? 'zh' : 'en';
+  const prompt = translationMode === 'zh-en'
+    ? 'BDSM, Dom, Sub, vers, bottom, top, Rigger, safeword, 不分, 繩縛, 調教, 臣服者'
+    : 'BDSM, Dom, Sub, vers, bottom, top, Rigger, safeword, bondage, collar';
   formData.append('model', 'whisper-large-v3-turbo');
-  formData.append('language', 'zh');
+  formData.append('language', lang);
   formData.append('response_format', 'json');
-  formData.append('prompt', 'BDSM, Dom, Sub, vers, bottom, top, Rigger, safeword, 不分, 繩縛, 調教, 臣服者');
+  formData.append('prompt', prompt);
 
   try {
     const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
@@ -709,6 +737,29 @@ function showToast(msg) {
   toast.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// ────────────────────────────────────────────
+// 翻譯方向切換
+// ────────────────────────────────────────────
+function toggleDirection() {
+  translationMode = translationMode === 'zh-en' ? 'en-zh' : 'zh-en';
+  updateDirectionUI();
+  clearAll();
+}
+
+function updateDirectionUI() {
+  const isZhEn = translationMode === 'zh-en';
+  document.getElementById('direction-btn').innerHTML = isZhEn
+    ? '中文 → English &nbsp;⇄'
+    : 'English → 中文 &nbsp;⇄';
+  document.getElementById('translate-btn').textContent = isZhEn
+    ? '翻譯成英文 →'
+    : 'Translate to 中文 →';
+  document.getElementById('input-text').placeholder = isZhEn
+    ? '在這裡輸入中文，或按麥克風說話…'
+    : 'Type English here, or tap mic to speak…';
+  document.getElementById('result-label').textContent = isZhEn ? 'English' : '中文翻譯';
 }
 
 function autoResize(el) {
