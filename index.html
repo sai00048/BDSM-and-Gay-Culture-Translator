@@ -79,7 +79,9 @@
       color: var(--text);
       font-size: 1.1rem;
       line-height: 1.5;
-      min-height: 80px;
+      min-height: 60px;
+      max-height: 45vh;
+      overflow-y: auto;
       outline: none;
       resize: none;
       width: 100%;
@@ -280,7 +282,7 @@
     <!-- 翻譯區塊 -->
     <div class="translation-card">
       <div class="input-area">
-        <textarea id="input-text" placeholder="在這裡輸入中文，或按麥克風說話…" rows="3"></textarea>
+        <textarea id="input-text" placeholder="在這裡輸入中文，或按麥克風說話…"></textarea>
       </div>
       <div class="input-actions">
         <button class="btn-mic" id="mic-btn" onclick="toggleMic()" title="語音輸入">🎤</button>
@@ -419,12 +421,15 @@ const PHRASES = {
 let currentCategory = Object.keys(PHRASES)[0];
 let recognition = null;
 let isListening = false;
+let finalParts = [];
 
 window.addEventListener('DOMContentLoaded', () => {
   document.getElementById('main-screen').style.display = 'flex';
   buildTabs();
   renderPhrases(currentCategory);
   setupSpeechRecognition();
+  const ta = document.getElementById('input-text');
+  ta.addEventListener('input', () => autoResize(ta));
 });
 
 // ────────────────────────────────────────────
@@ -474,7 +479,9 @@ function showResult(text) {
 }
 
 function clearAll() {
-  document.getElementById('input-text').value = '';
+  const ta = document.getElementById('input-text');
+  ta.value = '';
+  ta.style.height = '60px';
   const el = document.getElementById('result-text');
   el.textContent = '翻譯結果會顯示在這裡';
   el.classList.add('placeholder');
@@ -500,33 +507,46 @@ function setupSpeechRecognition() {
 
   recognition = new SpeechRecognition();
   recognition.lang = 'zh-TW';
-  recognition.continuous = false;
+  recognition.continuous = true;
   recognition.interimResults = true;
 
   recognition.onstart = () => {
     isListening = true;
     document.getElementById('mic-btn').classList.add('listening');
-    setStatus('🎤 聆聽中… 說完後請停頓一下');
+    setStatus('🎤 聆聽中… 說完按麥克風停止');
   };
 
   recognition.onresult = (e) => {
-    const transcript = Array.from(e.results)
-      .map(r => r[0].transcript)
-      .join('');
-    document.getElementById('input-text').value = transcript;
+    let interimText = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      const part = e.results[i][0].transcript.trim();
+      if (e.results[i].isFinal) {
+        if (part) finalParts.push(part);
+      } else {
+        interimText += part;
+      }
+    }
+    const inputEl = document.getElementById('input-text');
+    inputEl.value = (finalParts.length > 0 ? finalParts.join('，') : '') + interimText;
+    autoResize(inputEl);
   };
 
   recognition.onend = () => {
     isListening = false;
     document.getElementById('mic-btn').classList.remove('listening');
     setStatus('');
-    const text = document.getElementById('input-text').value.trim();
+    const inputEl = document.getElementById('input-text');
+    const text = finalParts.join('，').trim();
+    inputEl.value = text;
+    finalParts = [];
+    autoResize(inputEl);
     if (text) translateNow();
   };
 
   recognition.onerror = (e) => {
     isListening = false;
     document.getElementById('mic-btn').classList.remove('listening');
+    finalParts = [];
     if (e.error === 'not-allowed') {
       setStatus('⚠️ 請允許瀏覽器使用麥克風');
     } else if (e.error === 'no-speech') {
@@ -545,7 +565,10 @@ function toggleMic() {
   if (isListening) {
     recognition.stop();
   } else {
-    document.getElementById('input-text').value = '';
+    const ta = document.getElementById('input-text');
+    ta.value = '';
+    ta.style.height = '60px';
+    finalParts = [];
     recognition.start();
   }
 }
@@ -604,6 +627,12 @@ function showToast(msg) {
   toast.classList.add('show');
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+function autoResize(el) {
+  el.style.height = 'auto';
+  const maxH = Math.round(window.innerHeight * 0.45);
+  el.style.height = Math.min(el.scrollHeight, maxH) + 'px';
 }
 
 // Enter 鍵觸發翻譯（桌機用）
