@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Gay Bar 翻譯工具</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d0d14;
+      --surface: #1a1a2e;
+      --surface2: #16213e;
+      --accent: #e040fb;
+      --accent2: #7c4dff;
+      --text: #f0f0f0;
+      --text-dim: #999;
+      --success: #69f0ae;
+      --border: #2a2a4a;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      min-height: 100dvh;
+      padding: 0;
+      overscroll-behavior: none;
+    }
+
+    /* ── 設定畫面 ── */
+    #setup-screen {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100dvh;
+      padding: 24px;
+      gap: 20px;
+    }
+
+    #setup-screen h1 { font-size: 1.6rem; text-align: center; }
+    #setup-screen p { color: var(--text-dim); font-size: 0.9rem; text-align: center; line-height: 1.6; }
+
+    .setup-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 24px;
+      width: 100%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .setup-box label { font-size: 0.85rem; color: var(--text-dim); }
+
+    input[type="password"], input[type="text"] {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      font-size: 0.95rem;
+      padding: 12px 14px;
+      width: 100%;
+      outline: none;
+    }
+    input:focus { border-color: var(--accent); }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 600;
+      padding: 14px;
+      width: 100%;
+      transition: opacity 0.15s;
+    }
+    .btn-primary:active { opacity: 0.8; }
+
+    /* ── 主畫面 ── */
+    #main-screen { display: none; flex-direction: column; min-height: 100dvh; }
+
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 { font-size: 1.1rem; }
+    .header-actions { display: flex; gap: 8px; }
+    .btn-icon {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 6px 10px;
+    }
+
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    /* ── 翻譯區塊 ── */
+    .translation-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+    }
+
+    .input-area {
+      position: relative;
+      padding: 14px;
+    }
+
+    textarea {
+      background: transparent;
+      border: none;
+      color: var(--text);
+      font-size: 1.1rem;
+      line-height: 1.5;
+      min-height: 80px;
+      outline: none;
+      resize: none;
+      width: 100%;
+    }
+    textarea::placeholder { color: var(--text-dim); }
+
+    .input-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      padding: 8px 14px 14px;
+    }
+
+    .btn-mic {
+      align-items: center;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border: none;
+      border-radius: 50%;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      font-size: 1.4rem;
+      height: 52px;
+      justify-content: center;
+      transition: transform 0.1s, box-shadow 0.2s;
+      width: 52px;
+      flex-shrink: 0;
+    }
+    .btn-mic.listening {
+      animation: pulse 1s infinite;
+      box-shadow: 0 0 0 8px rgba(224, 64, 251, 0.2);
+    }
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.06); }
+    }
+
+    .btn-translate {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text);
+      cursor: pointer;
+      flex: 1;
+      font-size: 0.95rem;
+      padding: 12px;
+    }
+    .btn-clear {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.85rem;
+      padding: 12px;
+    }
+
+    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
+
+    .result-area {
+      padding: 16px 14px;
+      min-height: 80px;
+    }
+    .result-label {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    #result-text {
+      color: var(--success);
+      font-size: 1.3rem;
+      font-weight: 500;
+      line-height: 1.5;
+      word-break: break-word;
+    }
+    #result-text.placeholder { color: var(--text-dim); font-size: 1rem; font-weight: 400; }
+
+    .copy-btn {
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin-top: 10px;
+      padding: 4px 0;
+    }
+    .copy-btn:active { color: var(--success); }
+
+    /* ── 狀態訊息 ── */
+    #status-msg {
+      color: var(--accent);
+      font-size: 0.85rem;
+      min-height: 20px;
+      text-align: center;
+    }
+
+    /* ── 快捷短語 ── */
+    .section-title {
+      color: var(--text-dim);
+      font-size: 0.75rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      margin-bottom: 10px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+      scrollbar-width: none;
+    }
+    .tab-bar::-webkit-scrollbar { display: none; }
+
+    .tab-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.8rem;
+      padding: 6px 14px;
+      white-space: nowrap;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+    .tab-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .phrases-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .phrase-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      cursor: pointer;
+      padding: 12px 14px;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .phrase-card:active {
+      background: var(--surface2);
+      border-color: var(--accent);
+    }
+    .phrase-en {
+      color: var(--success);
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-bottom: 4px;
+    }
+    .phrase-zh {
+      color: var(--text-dim);
+      font-size: 0.8rem;
+    }
+
+    /* ── Toast ── */
+    #toast {
+      background: var(--surface);
+      border: 1px solid var(--accent);
+      border-radius: 10px;
+      bottom: 32px;
+      color: var(--text);
+      font-size: 0.9rem;
+      left: 50%;
+      opacity: 0;
+      padding: 10px 20px;
+      pointer-events: none;
+      position: fixed;
+      transform: translateX(-50%) translateY(10px);
+      transition: opacity 0.2s, transform 0.2s;
+      white-space: nowrap;
+      z-index: 999;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  </style>
+</head>
+<body>
+
+<!-- 設定畫面 -->
+<div id="setup-screen">
+  <div style="font-size:2.5rem">🏳️‍🌈</div>
+  <h1>Gay Bar 翻譯工具</h1>
+  <p>首次使用需要輸入你的 DeepL API Key。<br>Key 只儲存在你的手機，不會上傳任何地方。</p>
+  <div class="setup-box">
+    <label>DeepL Free API Key</label>
+    <input type="password" id="api-key-input" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx" autocomplete="off">
+    <p style="font-size:0.78rem; color: var(--text-dim);">
+      在 deepl.com → 帳號設定 → API Keys 取得你的 Key
+    </p>
+    <button class="btn-primary" onclick="saveApiKey()">儲存並開始使用</button>
+  </div>
+</div>
+
+<!-- 主畫面 -->
+<div id="main-screen">
+  <header>
+    <h1>🏳️‍🌈 Gay Bar 翻譯</h1>
+    <div class="header-actions">
+      <button class="btn-icon" onclick="resetApiKey()">換 Key</button>
+    </div>
+  </header>
+
+  <div class="main-content">
+
+    <!-- 翻譯區塊 -->
+    <div class="translation-card">
+      <div class="input-area">
+        <textarea id="input-text" placeholder="在這裡輸入中文，或按麥克風說話…" rows="3"></textarea>
+      </div>
+      <div class="input-actions">
+        <button class="btn-mic" id="mic-btn" onclick="toggleMic()" title="語音輸入">🎤</button>
+        <button class="btn-translate" onclick="translateNow()">翻譯成英文 →</button>
+        <button class="btn-clear" onclick="clearAll()">清除</button>
+      </div>
+      <hr class="divider">
+      <div class="result-area">
+        <div class="result-label">English</div>
+        <div id="result-text" class="placeholder">翻譯結果會顯示在這裡</div>
+        <button class="copy-btn" id="copy-btn" onclick="copyResult()" style="display:none">複製英文 📋</button>
+      </div>
+    </div>
+
+    <div id="status-msg"></div>
+
+    <!-- 快捷短語 -->
+    <div>
+      <div class="section-title">常用情境短語（點一下直接顯示）</div>
+      <div class="tab-bar" id="tab-bar"></div>
+    </div>
+    <div class="phrases-grid" id="phrases-grid"></div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<script>
+// ────────────────────────────────────────────
+// 術語覆蓋表：翻譯前先替換這些詞，確保翻譯正確
+// ────────────────────────────────────────────
+const TERM_MAP = [
+  // 性行為角色
+  ['不分偏1', 'vers top'],
+  ['不分偏0', 'vers bottom'],
+  ['純0', 'power bottom'],
+  ['純1', 'strict top'],
+  ['0號', 'bottom'],
+  ['1號', 'top'],
+  ['不分', 'vers'],
+  // BDSM 角色
+  ['支配者', 'Dom'],
+  ['臣服者', 'Sub'],
+  ['主人', 'Master'],
+  ['奴隸', 'Slave'],
+  ['繩師', 'Rigger'],
+  ['繩奴', 'rope bunny'],
+  ['小搗蛋', 'Brat'],
+  ['訓誡者', 'Brat tamer'],
+  ['爹地', 'Daddy'],
+  ['施虐者', 'Sadist'],
+  ['受虐者', 'Masochist'],
+  ['施辱者', 'Degrader'],
+  ['受辱者', 'Degradee'],
+  // 玩法
+  ['繩縛', 'rope bondage'],
+  ['束縛', 'bondage'],
+  ['衝擊遊戲', 'impact play'],
+  ['感官遊戲', 'sensation play'],
+  ['滴蠟', 'wax play'],
+  ['鞭打', 'flogging'],
+  ['拍打', 'spanking'],
+  ['藤條', 'caning'],
+  ['揍腹', 'gut punch'],
+  ['虐蛋', 'CBT'],
+  ['調教', 'BDSM training'],
+  ['羞辱', 'humiliation/degradation'],
+  ['安全詞', 'safeword'],
+  ['前列腺', 'prostate'],
+  ['項圈', 'collar'],
+  ['戴上項圈', 'collaring'],
+  // 體型/社群
+  ['熊族', 'Bear'],
+  ['小熊', 'Cub'],
+  ['水獺', 'Otter'],
+  ['猛男', 'Hunk'],
+  ['肌肉男', 'Jock'],
+  ['香草', 'Vanilla'],
+  ['約砲', 'hook up'],
+  ['出櫃', 'come out'],
+  ['同志', 'gay'],
+];
+
+// ────────────────────────────────────────────
+// 快捷短語資料庫
+// ────────────────────────────────────────────
+const PHRASES = {
+  '搭訕': [
+    { en: "Hey, you're really cute.", zh: "嘿，你真的很帥。" },
+    { en: "Are you into guys?", zh: "你喜歡男生嗎？" },
+    { en: "Mind if I join you?", zh: "我可以過來陪你坐嗎？" },
+    { en: "Can I buy you a drink?", zh: "我可以請你喝一杯嗎？" },
+    { en: "Are you here alone?", zh: "你一個人來的嗎？" },
+    { en: "Can I have your number?", zh: "可以給我你的聯絡方式嗎？" },
+  ],
+  '角色確認': [
+    { en: "Are you a top or bottom?", zh: "你是 1 號還是 0 號？" },
+    { en: "I'm a vers bottom.", zh: "我是不分偏 0。" },
+    { en: "I'm a strict top.", zh: "我是純 1。" },
+    { en: "I'm versatile.", zh: "我不分。" },
+    { en: "Are you Dom or sub?", zh: "你是支配者還是臣服者？" },
+    { en: "I'm a sub looking for a Dom.", zh: "我是 sub，在找支配者。" },
+  ],
+  '玩法興趣': [
+    { en: "Are you into BDSM?", zh: "你有在玩 BDSM 嗎？" },
+    { en: "I'm into rope bondage.", zh: "我喜歡繩縛。" },
+    { en: "I like light bondage.", zh: "我喜歡輕度束縛。" },
+    { en: "I'm a Rigger.", zh: "我是繩師。" },
+    { en: "I enjoy impact play.", zh: "我喜歡衝擊遊戲。" },
+    { en: "Are you into sensation play?", zh: "你喜歡感官遊戲嗎？" },
+    { en: "I'm into wax play.", zh: "我喜歡滴蠟。" },
+  ],
+  '邊界確認': [
+    { en: "What are your limits?", zh: "你有哪些底線？" },
+    { en: "Do you have a safeword?", zh: "你有安全詞嗎？" },
+    { en: "Is this okay with you?", zh: "你覺得這樣可以嗎？" },
+    { en: "Are you comfortable?", zh: "你還舒服嗎？" },
+    { en: "Do you want to stop?", zh: "你想停下來嗎？" },
+    { en: "Let's talk about boundaries first.", zh: "我們先聊一下邊界。" },
+  ],
+  '邀約': [
+    { en: "Wanna hook up?", zh: "要約嗎？" },
+    { en: "Want to get out of here?", zh: "要離開這裡去別的地方嗎？" },
+    { en: "Are you hosting?", zh: "你可以提供場地嗎？" },
+    { en: "I'm not hosting tonight.", zh: "我今晚沒辦法提供場地。" },
+    { en: "Let's meet up sometime.", zh: "找個時間見面吧。" },
+    { en: "Are you on Grindr?", zh: "你有在用 Grindr 嗎？" },
+  ],
+};
+
+// ────────────────────────────────────────────
+// 初始化
+// ────────────────────────────────────────────
+let currentCategory = Object.keys(PHRASES)[0];
+let recognition = null;
+let isListening = false;
+
+window.addEventListener('DOMContentLoaded', () => {
+  const savedKey = localStorage.getItem('deepl_api_key');
+  if (savedKey) {
+    showMainScreen();
+  } else {
+    document.getElementById('setup-screen').style.display = 'flex';
+  }
+  buildTabs();
+  renderPhrases(currentCategory);
+  setupSpeechRecognition();
+});
+
+function saveApiKey() {
+  const key = document.getElementById('api-key-input').value.trim();
+  if (!key) { showToast('請輸入 API Key'); return; }
+  localStorage.setItem('deepl_api_key', key);
+  showMainScreen();
+}
+
+function resetApiKey() {
+  if (confirm('確定要更換 API Key？')) {
+    localStorage.removeItem('deepl_api_key');
+    location.reload();
+  }
+}
+
+function showMainScreen() {
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('main-screen').style.display = 'flex';
+}
+
+// ────────────────────────────────────────────
+// 術語預處理
+// ────────────────────────────────────────────
+function preprocessText(text) {
+  let processed = text;
+  const replacements = [];
+
+  TERM_MAP.forEach(([zh, en]) => {
+    const regex = new RegExp(zh, 'g');
+    if (regex.test(processed)) {
+      const placeholder = `__TERM${replacements.length}__`;
+      replacements.push({ placeholder, en });
+      processed = processed.replace(new RegExp(zh, 'g'), placeholder);
+    }
+  });
+
+  return { processed, replacements };
+}
+
+function restoreTerms(text, replacements) {
+  let result = text;
+  replacements.forEach(({ placeholder, en }) => {
+    result = result.replace(new RegExp(placeholder.replace(/_/g, '\\_'), 'g'), en);
+  });
+  return result;
+}
+
+// ────────────────────────────────────────────
+// DeepL 翻譯
+// ────────────────────────────────────────────
+async function translateNow() {
+  const inputEl = document.getElementById('input-text');
+  const rawText = inputEl.value.trim();
+  if (!rawText) { showToast('請輸入要翻譯的文字'); return; }
+
+  const apiKey = localStorage.getItem('deepl_api_key');
+  if (!apiKey) { showToast('請先設定 API Key'); return; }
+
+  setStatus('翻譯中…');
+
+  const { processed, replacements } = preprocessText(rawText);
+
+  // 把術語佔位符標記成 XML tag，告訴 DeepL 不要翻譯這些部分
+  let xmlText = processed;
+  replacements.forEach(({ placeholder }) => {
+    xmlText = xmlText.replace(placeholder, `<keep>${placeholder}</keep>`);
+  });
+
+  try {
+    const params = new URLSearchParams({
+      auth_key: apiKey,
+      text: xmlText,
+      source_lang: 'ZH',
+      target_lang: 'EN-US',
+      tag_handling: 'xml',
+      ignore_tags: 'keep',
+    });
+
+    const response = await fetch('https://api-free.deepl.com/v2/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      if (response.status === 403) throw new Error('API Key 錯誤，請確認後重新輸入');
+      if (response.status === 456) throw new Error('本月 API 免費額度已用完');
+      throw new Error(`翻譯失敗（${response.status}）`);
+    }
+
+    const data = await response.json();
+    let translated = data.translations[0].text;
+
+    // 還原術語
+    translated = restoreTerms(translated, replacements);
+
+    showResult(translated);
+    setStatus('');
+  } catch (err) {
+    if (err.message.includes('Failed to fetch') || err.message.includes('CORS')) {
+      setStatus('⚠️ 無法連接 DeepL，請確認網路是否正常');
+    } else {
+      setStatus('⚠️ ' + err.message);
+    }
+  }
+}
+
+function showResult(text) {
+  const el = document.getElementById('result-text');
+  el.textContent = text;
+  el.classList.remove('placeholder');
+  document.getElementById('copy-btn').style.display = 'block';
+}
+
+function clearAll() {
+  document.getElementById('input-text').value = '';
+  const el = document.getElementById('result-text');
+  el.textContent = '翻譯結果會顯示在這裡';
+  el.classList.add('placeholder');
+  document.getElementById('copy-btn').style.display = 'none';
+  setStatus('');
+}
+
+function copyResult() {
+  const text = document.getElementById('result-text').textContent;
+  navigator.clipboard.writeText(text).then(() => showToast('已複製！'));
+}
+
+// ────────────────────────────────────────────
+// 語音輸入
+// ────────────────────────────────────────────
+function setupSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    document.getElementById('mic-btn').title = '你的瀏覽器不支援語音輸入（建議用 Chrome）';
+    document.getElementById('mic-btn').style.opacity = '0.4';
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = 'zh-TW';
+  recognition.continuous = false;
+  recognition.interimResults = true;
+
+  recognition.onstart = () => {
+    isListening = true;
+    document.getElementById('mic-btn').classList.add('listening');
+    setStatus('🎤 聆聽中… 說完後請停頓一下');
+  };
+
+  recognition.onresult = (e) => {
+    const transcript = Array.from(e.results)
+      .map(r => r[0].transcript)
+      .join('');
+    document.getElementById('input-text').value = transcript;
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    setStatus('');
+    const text = document.getElementById('input-text').value.trim();
+    if (text) translateNow();
+  };
+
+  recognition.onerror = (e) => {
+    isListening = false;
+    document.getElementById('mic-btn').classList.remove('listening');
+    if (e.error === 'not-allowed') {
+      setStatus('⚠️ 請允許瀏覽器使用麥克風');
+    } else if (e.error === 'no-speech') {
+      setStatus('沒有偵測到聲音，請再試一次');
+    } else {
+      setStatus('語音輸入錯誤：' + e.error);
+    }
+  };
+}
+
+function toggleMic() {
+  if (!recognition) {
+    showToast('請改用 Chrome 瀏覽器以使用語音功能');
+    return;
+  }
+  if (isListening) {
+    recognition.stop();
+  } else {
+    document.getElementById('input-text').value = '';
+    recognition.start();
+  }
+}
+
+// ────────────────────────────────────────────
+// 快捷短語
+// ────────────────────────────────────────────
+function buildTabs() {
+  const tabBar = document.getElementById('tab-bar');
+  Object.keys(PHRASES).forEach((cat, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = cat;
+    btn.onclick = () => switchTab(cat, btn);
+    tabBar.appendChild(btn);
+  });
+}
+
+function switchTab(cat, clickedBtn) {
+  currentCategory = cat;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  clickedBtn.classList.add('active');
+  renderPhrases(cat);
+}
+
+function renderPhrases(cat) {
+  const grid = document.getElementById('phrases-grid');
+  grid.innerHTML = '';
+  PHRASES[cat].forEach(phrase => {
+    const card = document.createElement('div');
+    card.className = 'phrase-card';
+    card.innerHTML = `<div class="phrase-en">${phrase.en}</div><div class="phrase-zh">${phrase.zh}</div>`;
+    card.onclick = () => usePhrase(phrase.en);
+    grid.appendChild(card);
+  });
+}
+
+function usePhrase(en) {
+  showResult(en);
+  document.getElementById('input-text').value = '';
+  showToast('點擊「複製英文」給對方看');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ────────────────────────────────────────────
+// UI 工具
+// ────────────────────────────────────────────
+function setStatus(msg) {
+  document.getElementById('status-msg').textContent = msg;
+}
+
+let toastTimer;
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
+}
+
+// Enter 鍵觸發翻譯（桌機用）
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.ctrlKey) translateNow();
+});
+</script>
+</body>
+</html>
