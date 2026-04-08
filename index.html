@@ -28,60 +28,6 @@
       overscroll-behavior: none;
     }
 
-    /* ── 設定畫面 ── */
-    #setup-screen {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      min-height: 100dvh;
-      padding: 24px;
-      gap: 20px;
-    }
-
-    #setup-screen h1 { font-size: 1.6rem; text-align: center; }
-    #setup-screen p { color: var(--text-dim); font-size: 0.9rem; text-align: center; line-height: 1.6; }
-
-    .setup-box {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 24px;
-      width: 100%;
-      max-width: 400px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-
-    .setup-box label { font-size: 0.85rem; color: var(--text-dim); }
-
-    input[type="password"], input[type="text"] {
-      background: var(--bg);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text);
-      font-size: 0.95rem;
-      padding: 12px 14px;
-      width: 100%;
-      outline: none;
-    }
-    input:focus { border-color: var(--accent); }
-
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent2));
-      border: none;
-      border-radius: 12px;
-      color: #fff;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 600;
-      padding: 14px;
-      width: 100%;
-      transition: opacity 0.15s;
-    }
-    .btn-primary:active { opacity: 0.8; }
-
     /* ── 主畫面 ── */
     #main-screen { display: none; flex-direction: column; min-height: 100dvh; }
 
@@ -323,28 +269,10 @@
 </head>
 <body>
 
-<!-- 設定畫面 -->
-<div id="setup-screen">
-  <div style="font-size:2.5rem">🏳️‍🌈</div>
-  <h1>Gay Bar 翻譯工具</h1>
-  <p>首次使用需要輸入你的 DeepL API Key。<br>Key 只儲存在你的手機，不會上傳任何地方。</p>
-  <div class="setup-box">
-    <label>DeepL Free API Key</label>
-    <input type="password" id="api-key-input" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx:fx" autocomplete="off">
-    <p style="font-size:0.78rem; color: var(--text-dim);">
-      在 deepl.com → 帳號設定 → API Keys 取得你的 Key
-    </p>
-    <button class="btn-primary" onclick="saveApiKey()">儲存並開始使用</button>
-  </div>
-</div>
-
 <!-- 主畫面 -->
 <div id="main-screen">
   <header>
     <h1>🏳️‍🌈 Gay Bar 翻譯</h1>
-    <div class="header-actions">
-      <button class="btn-icon" onclick="resetApiKey()">換 Key</button>
-    </div>
   </header>
 
   <div class="main-content">
@@ -493,121 +421,48 @@ let recognition = null;
 let isListening = false;
 
 window.addEventListener('DOMContentLoaded', () => {
-  const savedKey = localStorage.getItem('deepl_api_key');
-  if (savedKey) {
-    showMainScreen();
-  } else {
-    document.getElementById('setup-screen').style.display = 'flex';
-  }
+  document.getElementById('main-screen').style.display = 'flex';
   buildTabs();
   renderPhrases(currentCategory);
   setupSpeechRecognition();
 });
 
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key) { showToast('請輸入 API Key'); return; }
-  localStorage.setItem('deepl_api_key', key);
-  showMainScreen();
-}
-
-function resetApiKey() {
-  if (confirm('確定要更換 API Key？')) {
-    localStorage.removeItem('deepl_api_key');
-    location.reload();
-  }
-}
-
-function showMainScreen() {
-  document.getElementById('setup-screen').style.display = 'none';
-  document.getElementById('main-screen').style.display = 'flex';
-}
-
 // ────────────────────────────────────────────
-// 術語預處理
+// 術語預處理：先把中文術語換成英文，再送去翻譯
 // ────────────────────────────────────────────
 function preprocessText(text) {
   let processed = text;
-  const replacements = [];
-
   TERM_MAP.forEach(([zh, en]) => {
-    const regex = new RegExp(zh, 'g');
-    if (regex.test(processed)) {
-      const placeholder = `__TERM${replacements.length}__`;
-      replacements.push({ placeholder, en });
-      processed = processed.replace(new RegExp(zh, 'g'), placeholder);
-    }
+    processed = processed.replace(new RegExp(zh, 'g'), en);
   });
-
-  return { processed, replacements };
-}
-
-function restoreTerms(text, replacements) {
-  let result = text;
-  replacements.forEach(({ placeholder, en }) => {
-    result = result.replace(new RegExp(placeholder.replace(/_/g, '\\_'), 'g'), en);
-  });
-  return result;
+  return processed;
 }
 
 // ────────────────────────────────────────────
-// DeepL 翻譯
+// Google 翻譯（免費，無需 API Key）
 // ────────────────────────────────────────────
 async function translateNow() {
   const inputEl = document.getElementById('input-text');
   const rawText = inputEl.value.trim();
   if (!rawText) { showToast('請輸入要翻譯的文字'); return; }
 
-  const apiKey = localStorage.getItem('deepl_api_key');
-  if (!apiKey) { showToast('請先設定 API Key'); return; }
-
   setStatus('翻譯中…');
 
-  const { processed, replacements } = preprocessText(rawText);
-
-  // 把術語佔位符標記成 XML tag，告訴 DeepL 不要翻譯這些部分
-  let xmlText = processed;
-  replacements.forEach(({ placeholder }) => {
-    xmlText = xmlText.replace(placeholder, `<keep>${placeholder}</keep>`);
-  });
+  const textToTranslate = preprocessText(rawText);
 
   try {
-    const params = new URLSearchParams({
-      auth_key: apiKey,
-      text: xmlText,
-      source_lang: 'ZH',
-      target_lang: 'EN-US',
-      tag_handling: 'xml',
-      ignore_tags: 'keep',
-    });
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=zh-TW&tl=en&dt=t&q=${encodeURIComponent(textToTranslate)}`;
+    const response = await fetch(url);
 
-    const response = await fetch('https://api-free.deepl.com/v2/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: params.toString(),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      if (response.status === 403) throw new Error('API Key 錯誤，請確認後重新輸入');
-      if (response.status === 456) throw new Error('本月 API 免費額度已用完');
-      throw new Error(`翻譯失敗（${response.status}）`);
-    }
+    if (!response.ok) throw new Error(`翻譯失敗（${response.status}）`);
 
     const data = await response.json();
-    let translated = data.translations[0].text;
-
-    // 還原術語
-    translated = restoreTerms(translated, replacements);
+    const translated = data[0].map(item => item[0]).join('');
 
     showResult(translated);
     setStatus('');
   } catch (err) {
-    if (err.message.includes('Failed to fetch') || err.message.includes('CORS')) {
-      setStatus('⚠️ 無法連接 DeepL，請確認網路是否正常');
-    } else {
-      setStatus('⚠️ ' + err.message);
-    }
+    setStatus('⚠️ 翻譯失敗，請確認網路是否正常');
   }
 }
 
