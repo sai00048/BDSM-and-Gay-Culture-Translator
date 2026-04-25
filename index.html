@@ -3,7 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>Gay Bar 翻譯工具</title>
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Gay Bar 翻譯">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0d0d14">
+  <title>Gay Bar 翻譯工具 v2</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -14,86 +19,195 @@
       --accent: #e040fb;
       --accent2: #7c4dff;
       --text: #f0f0f0;
-      --text-dim: #999;
+      --text-dim: #888;
       --success: #69f0ae;
       --border: #2a2a4a;
+      --danger: #ff5370;
+      --half: 50dvh;
     }
 
-    body {
+    html, body {
+      height: 100%;
+      overflow: hidden;
       background: var(--bg);
       color: var(--text);
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      min-height: 100dvh;
-      padding: 0;
-      overscroll-behavior: none;
     }
 
-    /* ── 主畫面 ── */
-    #main-screen { display: none; flex-direction: column; min-height: 100dvh; }
+    /* ══════════════════════════════
+       全螢幕對話布局
+    ══════════════════════════════ */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      overflow: hidden;
+    }
 
-    header {
-      background: var(--surface);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 16px;
+    /* 中間分隔線 */
+    #divider {
+      flex-shrink: 0;
+      height: 2px;
+      background: linear-gradient(90deg, var(--accent2), var(--accent));
+      position: relative;
+      z-index: 10;
+    }
+
+    /* ── 面板通用 ── */
+    .panel {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    /* 上半部（對方那側）：整體顛倒 */
+    #panel-top {
+      transform: rotate(180deg);
+      background: var(--surface2);
+    }
+
+    /* 下半部（自己那側） */
+    #panel-bottom {
+      background: var(--bg);
+    }
+
+    /* ── 面板 Header ── */
+    .panel-header {
       display: flex;
       align-items: center;
       justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(0,0,0,0.3);
+      flex-shrink: 0;
+      gap: 8px;
     }
-    header h1 { font-size: 1.1rem; }
-    .header-actions { display: flex; gap: 8px; }
-    .btn-icon {
+
+    .lang-selector {
+      display: flex;
+      gap: 4px;
+    }
+
+    .lang-btn {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 0.72rem;
+      padding: 4px 10px;
+      transition: all 0.15s;
+      white-space: nowrap;
+    }
+    .lang-btn.active {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      border-color: transparent;
+      color: #fff;
+    }
+
+    .panel-label {
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    /* ── 翻譯結果顯示區 ── */
+    .result-display {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px 14px 8px;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      gap: 6px;
+      min-height: 0;
+    }
+
+    .result-text {
+      font-size: 1.25rem;
+      font-weight: 500;
+      line-height: 1.55;
+      word-break: break-word;
+      min-height: 48px;
+    }
+
+    #top-result { color: var(--success); }
+    #bottom-result { color: var(--success); }
+
+    .result-placeholder {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      font-weight: 400;
+    }
+
+    .copy-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .copy-btn {
       background: none;
       border: 1px solid var(--border);
       border-radius: 8px;
       color: var(--text-dim);
       cursor: pointer;
-      font-size: 0.8rem;
-      padding: 6px 10px;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+    }
+    .copy-btn:active { color: var(--success); border-color: var(--success); }
+
+    .engine-label {
+      font-size: 0.65rem;
+      color: var(--text-dim);
+      opacity: 0.6;
+      margin-left: auto;
     }
 
-    .main-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 16px;
+    /* settings 分隔線 */
+    .settings-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 14px 0;
+    }
+    .settings-section-title {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 8px;
+    }
+
+    /* ── 輸入區 ── */
+    .input-row {
       display: flex;
-      flex-direction: column;
-      gap: 16px;
+      align-items: flex-end;
+      gap: 8px;
+      padding: 8px 12px 10px;
+      flex-shrink: 0;
+      background: rgba(0,0,0,0.2);
     }
 
-    /* ── 翻譯區塊 ── */
-    .translation-card {
+    .input-row textarea {
+      flex: 1;
       background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 16px;
-      overflow: hidden;
-    }
-
-    .input-area {
-      position: relative;
-      padding: 14px;
-    }
-
-    textarea {
-      background: transparent;
-      border: none;
+      border-radius: 12px;
       color: var(--text);
-      font-size: 1.1rem;
-      line-height: 1.5;
-      min-height: 60px;
-      max-height: 45vh;
+      font-size: 1rem;
+      line-height: 1.45;
+      min-height: 42px;
+      max-height: 30dvh;
       overflow-y: auto;
       outline: none;
+      padding: 10px 12px;
       resize: none;
-      width: 100%;
     }
-    textarea::placeholder { color: var(--text-dim); }
-
-    .input-actions {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      padding: 8px 14px 14px;
-    }
+    .input-row textarea::placeholder { color: var(--text-dim); }
 
     .btn-mic {
       align-items: center;
@@ -103,20 +217,25 @@
       color: #fff;
       cursor: pointer;
       display: flex;
-      font-size: 1.4rem;
-      height: 52px;
+      font-size: 1.3rem;
+      height: 46px;
       justify-content: center;
       transition: transform 0.1s, box-shadow 0.2s;
-      width: 52px;
+      width: 46px;
       flex-shrink: 0;
     }
     .btn-mic.listening {
       animation: pulse 1s infinite;
-      box-shadow: 0 0 0 8px rgba(224, 64, 251, 0.2);
+      box-shadow: 0 0 0 8px rgba(224, 64, 251, 0.25);
     }
     @keyframes pulse {
       0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.06); }
+      50%       { transform: scale(1.08); }
+    }
+    .btn-mic.disabled {
+      background: var(--surface);
+      opacity: 0.5;
+      cursor: not-allowed;
     }
 
     .btn-translate {
@@ -125,107 +244,66 @@
       border-radius: 10px;
       color: var(--text);
       cursor: pointer;
-      flex: 1;
-      font-size: 0.95rem;
-      padding: 12px;
-    }
-    .btn-clear {
-      background: none;
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      color: var(--text-dim);
-      cursor: pointer;
       font-size: 0.85rem;
-      padding: 12px;
+      padding: 10px 12px;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
 
-    .direction-bar {
-      padding: 8px 14px;
-      display: flex;
-      justify-content: center;
+    /* ── 狀態訊息 ── */
+    .status-bar {
+      min-height: 18px;
+      padding: 0 14px 4px;
+      font-size: 0.78rem;
+      color: var(--accent);
+      flex-shrink: 0;
     }
-    #direction-btn {
-      background: var(--surface2);
-      border: 1px solid var(--border);
-      border-radius: 20px;
-      color: var(--text-dim);
-      cursor: pointer;
-      font-size: 0.82rem;
-      padding: 6px 16px;
-      transition: border-color 0.15s, color 0.15s;
-    }
-    #direction-btn:active { border-color: var(--accent); color: var(--accent); }
 
-    .divider { border: none; border-top: 1px solid var(--border); margin: 0; }
-
-    .result-area {
-      padding: 16px 14px;
-      min-height: 80px;
-    }
-    .result-label {
-      color: var(--text-dim);
-      font-size: 0.75rem;
-      margin-bottom: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    #result-text {
-      color: var(--success);
-      font-size: 1.3rem;
-      font-weight: 500;
-      line-height: 1.5;
-      word-break: break-word;
-    }
-    #result-text.placeholder { color: var(--text-dim); font-size: 1rem; font-weight: 400; }
-
-    .copy-btn {
+    /* ══════════════════════════════
+       快捷短語抽屜（下半部內）
+    ══════════════════════════════ */
+    #phrases-toggle {
       background: none;
       border: none;
       color: var(--text-dim);
       cursor: pointer;
-      font-size: 0.8rem;
-      margin-top: 10px;
-      padding: 4px 0;
-    }
-    .copy-btn:active { color: var(--success); }
-
-    /* ── 狀態訊息 ── */
-    #status-msg {
-      color: var(--accent);
-      font-size: 0.85rem;
-      min-height: 20px;
-      text-align: center;
-    }
-
-    /* ── 快捷短語 ── */
-    .section-title {
-      color: var(--text-dim);
       font-size: 0.75rem;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-      margin-bottom: 10px;
+      padding: 2px 6px;
+      white-space: nowrap;
     }
+
+    #phrases-drawer {
+      display: none;
+      flex-direction: column;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      max-height: 45dvh;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    #phrases-drawer.open { display: flex; }
 
     .tab-bar {
       display: flex;
-      gap: 8px;
+      gap: 6px;
       overflow-x: auto;
-      padding-bottom: 4px;
+      padding: 8px 12px 4px;
       scrollbar-width: none;
+      flex-shrink: 0;
     }
     .tab-bar::-webkit-scrollbar { display: none; }
 
     .tab-btn {
-      background: var(--surface);
+      background: var(--surface2);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: 16px;
       color: var(--text-dim);
       cursor: pointer;
-      font-size: 0.8rem;
-      padding: 6px 14px;
+      font-size: 0.75rem;
+      padding: 4px 12px;
       white-space: nowrap;
-      transition: all 0.15s;
       flex-shrink: 0;
+      transition: all 0.15s;
     }
     .tab-btn.active {
       background: linear-gradient(135deg, var(--accent), var(--accent2));
@@ -233,150 +311,212 @@
       color: #fff;
     }
 
-    .phrases-grid {
+    .phrases-list {
+      overflow-y: auto;
+      padding: 6px 12px 10px;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 6px;
     }
 
     .phrase-card {
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      cursor: pointer;
-      padding: 12px 14px;
-      transition: border-color 0.15s, background 0.15s;
-    }
-    .phrase-card:active {
       background: var(--surface2);
-      border-color: var(--accent);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      cursor: pointer;
+      padding: 9px 12px;
+      transition: border-color 0.15s;
     }
-    .phrase-en {
-      color: var(--success);
-      font-size: 0.95rem;
-      font-weight: 500;
-      margin-bottom: 4px;
-    }
-    .phrase-zh {
-      color: var(--text-dim);
-      font-size: 0.8rem;
-    }
+    .phrase-card:active { border-color: var(--accent); }
 
-    /* ── 設定 Modal ── */
+    .phrase-en { color: var(--success); font-size: 0.88rem; font-weight: 500; margin-bottom: 2px; }
+    .phrase-zh { color: var(--text-dim); font-size: 0.75rem; }
+    .phrase-ja { color: #80cbc4; font-size: 0.75rem; }
+
+    /* ══════════════════════════════
+       設定 Modal
+    ══════════════════════════════ */
     #settings-overlay {
       position: fixed; inset: 0;
-      background: rgba(0,0,0,0.7);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 1000; padding: 20px;
+      background: rgba(0,0,0,0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
     }
+    #settings-overlay.open { display: flex; }
+
     #settings-modal {
       background: var(--surface);
       border: 1px solid var(--border);
       border-radius: 16px;
-      padding: 24px;
-      width: 100%; max-width: 400px;
+      padding: 22px;
+      width: 100%;
+      max-width: 380px;
     }
-    #settings-modal h2 { font-size: 1rem; margin-bottom: 10px; }
-    #settings-modal p { color: var(--text-dim); font-size: 0.85rem; margin-bottom: 14px; line-height: 1.6; }
+    #settings-modal h2 { font-size: 1rem; margin-bottom: 8px; }
+    #settings-modal p  { color: var(--text-dim); font-size: 0.82rem; margin-bottom: 12px; line-height: 1.6; }
+
     #api-key-input {
       background: var(--bg);
       border: 1px solid var(--border);
       border-radius: 10px;
       color: var(--text);
       font-size: 0.9rem;
-      padding: 12px;
+      padding: 11px 12px;
       width: 100%;
       outline: none;
       margin-bottom: 14px;
     }
+
     .settings-actions { display: flex; gap: 8px; }
     .btn-save {
       background: linear-gradient(135deg, var(--accent), var(--accent2));
       border: none; border-radius: 10px;
       color: #fff; cursor: pointer;
-      flex: 1; font-size: 0.95rem; padding: 12px;
+      flex: 1; font-size: 0.95rem; padding: 11px;
     }
     .btn-cancel {
       background: none; border: 1px solid var(--border);
       border-radius: 10px; color: var(--text-dim);
-      cursor: pointer; font-size: 0.85rem; padding: 12px;
+      cursor: pointer; font-size: 0.85rem; padding: 11px;
     }
 
-    /* ── Toast ── */
+    /* ══════════════════════════════
+       Toast
+    ══════════════════════════════ */
     #toast {
       background: var(--surface);
       border: 1px solid var(--accent);
       border-radius: 10px;
-      bottom: 32px;
+      bottom: 28px;
       color: var(--text);
-      font-size: 0.9rem;
+      font-size: 0.88rem;
       left: 50%;
       opacity: 0;
-      padding: 10px 20px;
+      padding: 9px 18px;
       pointer-events: none;
       position: fixed;
       transform: translateX(-50%) translateY(10px);
       transition: opacity 0.2s, transform 0.2s;
       white-space: nowrap;
-      z-index: 999;
+      z-index: 200;
     }
-    #toast.show {
-      opacity: 1;
-      transform: translateX(-50%) translateY(0);
+    #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+    /* ══════════════════════════════
+       Settings gear button
+    ══════════════════════════════ */
+    #gear-btn {
+      position: fixed;
+      bottom: 14px;
+      right: 14px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 50%;
+      color: var(--text-dim);
+      cursor: pointer;
+      font-size: 1.1rem;
+      height: 40px;
+      width: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
     }
   </style>
 </head>
 <body>
 
-<!-- 主畫面 -->
-<div id="main-screen">
-  <header>
-    <h1>🏳️‍🌈 Gay Bar 翻譯</h1>
-    <button class="btn-icon" onclick="openSettings()">⚙ API Key</button>
-  </header>
+<div id="app">
 
-  <div class="main-content">
+  <!-- ═══ 上半部（對方那側，顛倒顯示） ═══ -->
+  <div class="panel" id="panel-top">
 
-    <!-- 翻譯區塊 -->
-    <div class="translation-card">
-      <div class="input-area">
-        <textarea id="input-text" placeholder="在這裡輸入中文，或按麥克風說話…"></textarea>
-      </div>
-      <div class="input-actions">
-        <button class="btn-mic" id="mic-btn" onclick="toggleMic()" title="語音輸入">🎤</button>
-        <button class="btn-translate" onclick="translateNow()" id="translate-btn">翻譯成英文 →</button>
-        <button class="btn-clear" onclick="clearAll()">清除</button>
-      </div>
-      <div class="direction-bar">
-        <button id="direction-btn" onclick="toggleDirection()">中文 → English &nbsp;⇄</button>
-      </div>
-      <hr class="divider">
-      <div class="result-area">
-        <div class="result-label" id="result-label">English</div>
-        <div id="result-text" class="placeholder">翻譯結果會顯示在這裡</div>
-        <button class="copy-btn" id="copy-btn" onclick="copyResult()" style="display:none">複製英文 📋</button>
+    <!-- 輸入區（顛倒後在視覺上方，實際 DOM 順序放下方以維持 flex 邏輯） -->
+    <div class="panel-header">
+      <div class="panel-label" id="top-label">對方</div>
+      <div class="lang-selector" id="top-langs"></div>
+    </div>
+
+    <div class="result-display">
+      <div class="result-text result-placeholder" id="top-result">翻譯結果顯示在這裡</div>
+      <div class="copy-row" id="top-copy-row" style="display:none">
+        <button class="copy-btn" onclick="copyText('top')">複製 📋</button>
+        <span class="engine-label" id="top-engine-label"></span>
       </div>
     </div>
 
-    <div id="status-msg"></div>
+    <div class="status-bar" id="top-status"></div>
 
-    <!-- 快捷短語 -->
-    <div>
-      <div class="section-title">常用情境短語（點一下直接顯示）</div>
-      <div class="tab-bar" id="tab-bar"></div>
+    <div class="input-row">
+      <button class="btn-mic" id="top-mic-btn" onclick="toggleMic('top')" title="語音輸入">🎤</button>
+      <textarea id="top-input" placeholder="在這裡輸入，或按麥克風…" oninput="autoResize(this)"></textarea>
+      <button class="btn-translate" onclick="doTranslate('top')">翻譯 →</button>
     </div>
-    <div class="phrases-grid" id="phrases-grid"></div>
 
   </div>
+
+  <!-- ═══ 中間分隔線 ═══ -->
+  <div id="divider"></div>
+
+  <!-- ═══ 下半部（自己那側） ═══ -->
+  <div class="panel" id="panel-bottom">
+
+    <div class="panel-header">
+      <div class="lang-selector" id="bottom-langs"></div>
+      <div style="display:flex; gap:6px; align-items:center;">
+        <button id="phrases-toggle" onclick="togglePhrases()">💬 常用短語</button>
+        <div class="panel-label" id="bottom-label">我</div>
+      </div>
+    </div>
+
+    <div class="result-display">
+      <div class="result-text result-placeholder" id="bottom-result">翻譯結果顯示在這裡</div>
+      <div class="copy-row" id="bottom-copy-row" style="display:none">
+        <button class="copy-btn" onclick="copyText('bottom')">複製 📋</button>
+        <span class="engine-label" id="bottom-engine-label"></span>
+      </div>
+    </div>
+
+    <div class="status-bar" id="bottom-status"></div>
+
+    <div class="input-row">
+      <button class="btn-mic" id="bottom-mic-btn" onclick="toggleMic('bottom')" title="語音輸入">🎤</button>
+      <textarea id="bottom-input" placeholder="在這裡輸入中文，或按麥克風說話…" oninput="autoResize(this)"></textarea>
+      <button class="btn-translate" onclick="doTranslate('bottom')">翻譯 →</button>
+    </div>
+
+    <!-- 快捷短語抽屜 -->
+    <div id="phrases-drawer">
+      <div class="tab-bar" id="tab-bar"></div>
+      <div class="phrases-list" id="phrases-list"></div>
+    </div>
+
+  </div>
+
 </div>
 
+<!-- 齒輪設定按鈕 -->
+<button id="gear-btn" onclick="openSettings()" title="API Key 設定">⚙️</button>
+
 <!-- 設定 Modal -->
-<div id="settings-overlay" style="display:none" onclick="if(event.target===this)closeSettings()">
+<div id="settings-overlay" onclick="if(event.target===this)closeSettings()">
   <div id="settings-modal">
-    <h2>Groq API Key 設定</h2>
-    <p>到 <strong>console.groq.com</strong> 申請免費 Key，貼在下方：</p>
+    <h2>API Key 設定</h2>
+
+    <div class="settings-section-title">翻譯引擎（OpenAI）</div>
+    <p>到 <strong>platform.openai.com</strong> 取得 Key。有填寫時使用 GPT-4o-mini 翻譯，品質更佳；留空則 fallback 至 Google 翻譯（免費）。</p>
+    <input type="password" id="openai-key-input" placeholder="sk-xxxxxxxxxxxxxxxx" autocomplete="off">
+
+    <hr class="settings-divider">
+
+    <div class="settings-section-title">語音辨識（Groq Whisper）</div>
+    <p>到 <strong>console.groq.com</strong> 免費申請，供麥克風語音辨識使用。</p>
     <input type="password" id="api-key-input" placeholder="gsk_xxxxxxxxxxxxxxxx" autocomplete="off">
-    <div class="settings-actions">
+
+    <div class="settings-actions" style="margin-top:14px">
       <button class="btn-save" onclick="saveApiKey()">儲存</button>
       <button class="btn-cancel" onclick="closeSettings()">取消</button>
     </div>
@@ -387,347 +527,883 @@
 <div id="toast"></div>
 
 <script>
-// ────────────────────────────────────────────
-// 術語覆蓋表：翻譯前先替換這些詞，確保翻譯正確
-// ────────────────────────────────────────────
-const TERM_MAP = [
-  // 性行為角色
-  ['不分偏1', 'vers top'],
-  ['不分偏0', 'vers bottom'],
-  ['純0', 'power bottom'],
-  ['純1', 'strict top'],
-  ['0號', 'bottom'],
-  ['1號', 'top'],
-  ['不分', 'vers'],
-  // BDSM 角色
-  ['支配者', 'Dom'],
-  ['臣服者', 'Sub'],
-  ['主人', 'Master'],
-  ['奴隸', 'Slave'],
-  ['繩師', 'Rigger'],
-  ['繩奴', 'rope bunny'],
-  ['小搗蛋', 'Brat'],
-  ['訓誡者', 'Brat tamer'],
-  ['爹地', 'Daddy'],
-  ['施虐者', 'Sadist'],
-  ['受虐者', 'Masochist'],
-  ['施辱者', 'Degrader'],
-  ['受辱者', 'Degradee'],
-  // 玩法
-  ['繩縛', 'rope bondage'],
-  ['束縛', 'bondage'],
-  ['衝擊遊戲', 'impact play'],
-  ['感官遊戲', 'sensation play'],
-  ['滴蠟', 'wax play'],
-  ['鞭打', 'flogging'],
-  ['拍打', 'spanking'],
-  ['藤條', 'caning'],
-  ['揍腹', 'gut punch'],
-  ['虐蛋', 'CBT'],
-  ['調教', 'BDSM training'],
-  ['羞辱', 'humiliation/degradation'],
-  ['安全詞', 'safeword'],
-  ['前列腺', 'prostate'],
-  ['項圈', 'collar'],
-  ['戴上項圈', 'collaring'],
-  // 體型/社群
-  ['熊族', 'Bear'],
-  ['小熊', 'Cub'],
-  ['水獺', 'Otter'],
-  ['猛男', 'Hunk'],
-  ['肌肉男', 'Jock'],
-  ['香草', 'Vanilla'],
-  ['約砲', 'hook up'],
-  ['出櫃', 'come out'],
-  ['同志', 'gay'],
+// ════════════════════════════════════════════════════════
+// PWA: inline manifest + service worker
+// ════════════════════════════════════════════════════════
+(function installPWA() {
+  // Manifest
+  const manifest = {
+    name: 'Gay Bar 翻譯工具',
+    short_name: 'GayBar翻譯',
+    description: 'BDSM & Gay Culture 即時翻譯，支援繁中/英/日',
+    start_url: '.',
+    display: 'fullscreen',
+    orientation: 'portrait',
+    background_color: '#0d0d14',
+    theme_color: '#0d0d14',
+    icons: [
+      { src: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="32" fill="%230d0d14"/><text y="130" font-size="120" text-anchor="middle" x="96">🏳️‍🌈</text></svg>', sizes: '192x192', type: 'image/svg+xml' }
+    ]
+  };
+  const mBlob = new Blob([JSON.stringify(manifest)], { type: 'application/json' });
+  const mUrl  = URL.createObjectURL(mBlob);
+  const link  = document.createElement('link');
+  link.rel    = 'manifest';
+  link.href   = mUrl;
+  document.head.appendChild(link);
+
+  // Service Worker (cache-first for offline)
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE = 'gaybar-v2';
+self.addEventListener('install', e => {
+  self.skipWaiting();
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(['.', location.href])));
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(caches.keys().then(keys =>
+    Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+  ));
+});
+self.addEventListener('fetch', e => {
+  if (e.request.url.includes('groq.com') || e.request.url.includes('googleapis.com')) return;
+  e.respondWith(
+    caches.match(e.request).then(r => r || fetch(e.request).then(res => {
+      const clone = res.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return res;
+    }))
+  );
+});
+`;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl  = URL.createObjectURL(swBlob);
+    navigator.serviceWorker.register(swUrl, { scope: './' })
+      .catch(() => {}); // 非 HTTPS 環境靜默忽略
+  }
+})();
+
+// ════════════════════════════════════════════════════════
+// 術語覆蓋表（中→英）
+//
+// 格式：[中文詞, 英文詞, 排除模式（可選）]
+//   排除模式：若中文詞出現在這些詞組中則不替換
+//   例如 '奴' 在 '奴才' / '農奴' 等非BDSM語境下不應被換
+//
+// 策略：
+//   1. 長詞優先（陣列已按詞長由長到短排列），確保「不分偏0」先被匹配到，不會被「不分」先吃掉
+//   2. 高風險單字（奴、熊、狼等）額外設定排除 pattern，只在 BDSM/gay 語境中才替換
+// ════════════════════════════════════════════════════════
+
+// [詞, 英文對應, 排除 pattern（RegExp，match 到則跳過）]
+const TERM_MAP_ZH_EN = [
+  // ── 性行為角色（長詞優先，漢字數字版排在阿拉伯數字版前面）──
+  ['不分偏一',  'verse top',      null],
+  ['不分偏零',  'verse bottom',   null],
+  ['不分偏1',   'verse top',      null],
+  ['不分偏0',   'verse bottom',   null],
+  ['純攻',      'pure top',       null],
+  ['純受',      'pure bottom',    null],
+  ['純0',       'power bottom',   null],
+  ['純1',       'strict top',     null],
+  ['不分',      'versatile',      null],
+  // 「一號」「零號」：排除「第一號」「一號公告/颱風/文件/計劃」等非性角色用法
+  ['一號',  'top',    /第一號|一號[公選颱風令告文件計劃]/],
+  ['零號',  'bottom', /零號[文件計劃令]/],
+  ['0號',   'bottom', null],
+  ['1號',   'top',    null],
+  // 「攻」：排除「進攻、攻擊、攻略、攻守、全攻、猛攻」等軍事/遊戲用法
+  ['攻',  'top',    /[進反強主猛速全]攻|攻[擊略守勢陷佔下城破入]/],
+  // 「受」：排除極常見的日常用法（接受、感受、享受、受傷、受害、受到…等）
+  // 規則拆成兩段：前綴型（xx受）和後綴型（受xx）
+  ['受',  'bottom', /[接承感享忍難飽深備遭蒙]受|受[傷害到過益惠歡訓苦難委屈罰孕辱贈封邀刑迫脅訊禁押]/],
+  // 「頂」：排除「頂樓、頂多、頂尖、頂替、頂端、屋頂、車頂、封頂」等非性角色用法
+  ['頂',  'top',    /頂[樓多尖替端層級天部點撞嘴峰]|[屋車]頂|封頂|至頂|到頂/],
+
+  // ── BDSM 角色（長詞優先）──
+  ['束縛與紀律', 'Bondage & Discipline', null],
+  ['支配與臣服', 'Dominance & Submission', null],
+  ['施虐與受虐', 'Sadism & Masochism', null],
+  ['訓誡者',    'Brat tamer',     null],
+  ['小搗蛋',    'Brat',           null],
+  ['支配者',    'Dom',            null],
+  ['臣服者',    'Sub',            null],
+  ['施虐者',    'Sadist',         null],
+  ['受虐者',    'Masochist',      null],
+  ['施辱者',    'Degrader',       null],
+  ['受辱者',    'Degradee',       null],
+  ['繩師',      'Rigger',         null],
+  ['繩奴',      'rope bunny',     null],
+  ['被縛者',    'rope bunny',     null],
+  ['爹地',      'Daddy Dom',      null],
+  ['原始野性',  'Primal',         null],
+  ['實驗者',    'Experimentalist', null],
+  // 「主人」在「主人公」「主人翁」等詞中不替換
+  ['主人',      'Master',         /主人[公翁]/],
+  // 「奴隸」完整詞安全，直接替換；單獨「奴」則要排除「奴才」「奴隸制」「農奴」等
+  ['奴隸',      'Slave',          null],
+  ['奴',        'slave',          /奴[才隸僕婢工役僕農牌]|農奴|家奴/],
+
+  // ── 玩法（長詞優先）──
+  // 幹射／乾射（整組詞優先，避免「體質」被拆開單獨翻譯）
+  ['幹射體質',  'hands-free orgasm potential', null],
+  ['乾射體質',  'hands-free orgasm potential', null],
+  ['幹射',      'hands-free orgasm',           null],
+  ['乾射',      'hands-free orgasm',           null],
+  ['前列腺高潮', 'prostate orgasm',  null],
+  ['前列腺開發', 'prostate play',    null],
+  ['感官遊戲',  'sensation play',    null],
+  ['衝擊遊戲',  'impact play',       null],
+  ['搔癢',      'tickle torture',    null],
+  ['癢刑',      'tickle torture',    null],
+  ['滴蠟',      'wax play',          null],
+  ['虐蛋',      'CBT',               null],
+  ['揍腹',      'gut punch',         null],
+  ['五花大綁',  'full-body restraint', null],
+  ['懸吊',      'suspension bondage', null],
+  ['吊綁',      'suspension bondage', null],
+  ['吊縛',      'suspension bondage', null],
+  ['禁慾',      'orgasm denial',      null],
+  ['繩縛',      'rope bondage',       null],
+  ['束縛',      'bondage',            null],
+  ['鞭打',      'flogging',           null],
+  ['拍打',      'spanking',           null],
+  ['藤條',      'caning',             null],
+  ['調教',      'BDSM training',      null],
+  ['羞辱',      'humiliation',        null],
+  ['安全詞',    'safeword',           null],
+  ['前列腺',    'prostate',           null],
+  ['戴上項圈',  'collaring',          null],
+  ['項圈',      'collar',             null],
+
+  // ── 體型（有語境風險的單字加排除）──
+  ['熊族',  'Bear',   null],
+  ['小熊',  'Cub',    null],
+  ['水獺',  'Otter',  null],
+  ['猛男',  'Hunk',   null],
+  ['肌肉男','Jock',   null],
+  ['壯雄',  'Muscular guy', null],
+  ['體育系','College athlete', null],
+  ['小鮮肉','Young attractive man', null],
+  ['大叔',  'Daddy',  null],
+  // 「熊」在貓熊、熊貓、狗熊、北極熊、熊掌等詞中不替換
+  ['熊',    'Bear',   /[貓狗北極]熊|熊[貓掌市爸媽]/],
+  // 「狼」在狼狽、狼人、色狼（另有意義）、虎狼等詞中不替換
+  ['狼',    'Wolf',   /狼[狽人心藉]|[虎色]狼/],
+  // 「竹竿」直接替換
+  ['竹竿',  'Twink',  null],
+  ['瘦子',  'Twink',  null],
+
+  // ── 性別氣質 ──
+  ['偽娘',   'Femboy',              null],
+  ['娘娘腔', 'Femme gay',           null],
+  ['陰柔男', 'Femme-presenting gay', null],
+  ['MAN款',  'Masc',                null],
+  ['man款',  'Masc',                null],
+  ['陽剛型', 'Masculine gay',       null],
+  ['中性',   'Androgynous',         /中性[化筆詞語]|[偏]中性/],  // 排除「中性化」「中性筆」等
+  // 「娘」單字排除「媽媽」「姑娘」「新娘」「爹娘」等
+  ['娘',     'Femme',               /[媽姑新婆爹老]娘|娘[家子娘]/],
+
+  // ── 社群身份（長詞優先：假直男 > 假直）──
+  ['假直男',   'closeted guy',      null],
+  ['假直',     'closeted',          null],
+  ['偽直男',   'closeted guy',      null],
+  ['偽直',     'closeted',          null],
+  ['出櫃',   'come out',            null],
+  ['未出櫃', 'closeted',            null],
+  ['同志',   'gay',                 null],
+  ['彎的',   'gay',                 null],
+  ['香草',   'vanilla',             null],
+
+  // ── 交友文化 ──
+  ['約砲',   'hook up',             null],
+  ['把到',   'scored',              null],
+  ['乾爹',   'sugar daddy',         null],
+  ['在地',   'hosting',             null],
+  ['出征',   'traveling',           null],
+  ['鬼島',   'ghosted',             null],
+  ['肉食',   'sexually assertive',  null],
+  ['草食',   'passive / low-key',   null],
+  ['色畜',   'thirsty',             null],
+
+  // ── 身體部位與性行為（男同志語境，長詞優先）──
+  // 全部使用不帶人稱代名詞的名詞形式，放入任何句子都不會造成主受詞混亂
+  ['故作矜持',  'playing hard to get',         null],
+  ['裝矜持',    'acting all innocent',          null],
+  ['尿道調教',  'urethral training',            null],
+  ['尿道插入',  'urethral sounding',            null],
+  ['被玩後面',  'anal play',                    null],
+  ['玩後面',    'anal play',                    null],
+  // 「後面」有語境風險：方位用法（後面說明/後面接著/後面的）不替換
+  // 「後面」排除規則：只排除明確的方位/文件用法（後面說/後面接/後面的+文件名詞）
+  // 「後面的感覺」「玩過後面的經驗」等性語境正常替換
+  ['後面',      'hole',   /後面[說接]+|後面的[段章節說明內容事情步驟部分頁面文字]/],
+  ['玩前面',    'cock play',                    null],
+  ['被玩穴',    'anal play',                    null],
+  ['玩穴',      'anal play',                    null],
+  ['後穴',      'hole',                         null],
+  ['菊穴',      'hole',                         null],
+  ['菊花',      'hole',                         null],
+  ['屁眼',      'hole',                         null],
+  ['肛門',      'anus',                         null],
+  ['後庭',      'hole',                         null],
+  ['社畜',      'corporate slave',              null],
+  // 單獨「穴」有風險：在「山穴」「洞穴」「穴道」等詞中不替換
+  ['穴',        'hole',   /[山洞岩石窟巢蟻獸]穴|穴[道位居]|地穴|氣穴/],
 ];
 
-// ────────────────────────────────────────────
-// 快捷短語資料庫
-// ────────────────────────────────────────────
-const PHRASES = {
-  '搭訕': [
-    { en: "Hey, you're really cute.", zh: "嘿，你真的很帥。" },
-    { en: "Are you into guys?", zh: "你喜歡男生嗎？" },
-    { en: "Mind if I join you?", zh: "我可以過來陪你坐嗎？" },
-    { en: "Can I buy you a drink?", zh: "我可以請你喝一杯嗎？" },
-    { en: "Are you here alone?", zh: "你一個人來的嗎？" },
-    { en: "Can I have your number?", zh: "可以給我你的聯絡方式嗎？" },
-  ],
-  '角色確認': [
-    { en: "Are you a top or bottom?", zh: "你是 1 號還是 0 號？" },
-    { en: "I'm a vers bottom.", zh: "我是不分偏 0。" },
-    { en: "I'm a strict top.", zh: "我是純 1。" },
-    { en: "I'm versatile.", zh: "我不分。" },
-    { en: "Are you Dom or sub?", zh: "你是支配者還是臣服者？" },
-    { en: "I'm a sub looking for a Dom.", zh: "我是 sub，在找支配者。" },
-  ],
-  '玩法興趣': [
-    { en: "Are you into BDSM?", zh: "你有在玩 BDSM 嗎？" },
-    { en: "I'm into rope bondage.", zh: "我喜歡繩縛。" },
-    { en: "I like light bondage.", zh: "我喜歡輕度束縛。" },
-    { en: "I'm a Rigger.", zh: "我是繩師。" },
-    { en: "I enjoy impact play.", zh: "我喜歡衝擊遊戲。" },
-    { en: "Are you into sensation play?", zh: "你喜歡感官遊戲嗎？" },
-    { en: "I'm into wax play.", zh: "我喜歡滴蠟。" },
-  ],
-  '邊界確認': [
-    { en: "What are your limits?", zh: "你有哪些底線？" },
-    { en: "Do you have a safeword?", zh: "你有安全詞嗎？" },
-    { en: "Is this okay with you?", zh: "你覺得這樣可以嗎？" },
-    { en: "Are you comfortable?", zh: "你還舒服嗎？" },
-    { en: "Do you want to stop?", zh: "你想停下來嗎？" },
-    { en: "Let's talk about boundaries first.", zh: "我們先聊一下邊界。" },
-  ],
-  '邀約': [
-    { en: "Wanna hook up?", zh: "要約嗎？" },
-    { en: "Want to get out of here?", zh: "要離開這裡去別的地方嗎？" },
-    { en: "Are you hosting?", zh: "你可以提供場地嗎？" },
-    { en: "I'm not hosting tonight.", zh: "我今晚沒辦法提供場地。" },
-    { en: "Let's meet up sometime.", zh: "找個時間見面吧。" },
-    { en: "Are you on Grindr?", zh: "你有在用 Grindr 嗎？" },
-  ],
-};
+// ── 術語覆蓋表（日→英）──
+const TERM_MAP_JA_EN = [
+  // 長詞優先
+  ['打撃プレイ',  'impact play',       null],
+  ['感覚プレイ',  'sensation play',    null],
+  ['ワックスプレイ', 'wax play',       null],
+  ['吊り縛り',   'suspension bondage', null],
+  ['安全言葉',   'safeword',           null],
+  ['縄師',       'Rigger',             null],
+  ['縄奴',       'rope bunny',         null],
+  ['緊縛',       'rope bondage',       null],
+  ['拘束',       'bondage',            null],
+  ['前立腺',     'prostate',           null],
+  ['鞭打ち',     'flogging',           null],
+  ['スパンキング','spanking',           null],
+  ['首輪',       'collar',             null],
+  ['調教',       'BDSM training',      null],
+  ['屈辱',       'humiliation',        null],
+  ['禁欲',       'orgasm denial',      null],
+  ['両刀',       'vers',               null],
+  ['攻め',       'top',                null],
+  ['受け',       'bottom',             null],
+  // 「主人」在日文「主人公」中不替換
+  ['主人',       'Master',             /主人公/],
+  ['奴隷',       'Slave',              null],
+  ['ゲイバー',   'gay bar',            null],
+  ['ゲイ',       'gay',                null],
+];
 
-// ────────────────────────────────────────────
-// 初始化
-// ────────────────────────────────────────────
-let currentCategory = Object.keys(PHRASES)[0];
-let groqApiKey = localStorage.getItem('groq_api_key') || '';
-let mediaRecorder = null;
-let audioChunks = [];
-let isRecording = false;
-let translationMode = 'zh-en'; // 'zh-en' | 'en-zh'
-
-window.addEventListener('DOMContentLoaded', () => {
-  document.getElementById('main-screen').style.display = 'flex';
-  buildTabs();
-  renderPhrases(currentCategory);
-  const ta = document.getElementById('input-text');
-  ta.addEventListener('input', () => autoResize(ta));
-  if (!groqApiKey) openSettings();
-});
-
-// ────────────────────────────────────────────
-// 術語預處理：先把中文術語換成英文，再送去翻譯
-// ────────────────────────────────────────────
-function preprocessText(text) {
+// ════════════════════════════════════════════════════════
+// 語境判斷預處理
+// ════════════════════════════════════════════════════════
+function preprocessText(text, fromLang) {
   let processed = text;
-  TERM_MAP.forEach(([zh, en]) => {
-    processed = processed.replace(new RegExp(zh, 'g'), en);
+  const map = fromLang === 'zh' ? TERM_MAP_ZH_EN
+            : fromLang === 'ja' ? TERM_MAP_JA_EN
+            : [];
+
+  map.forEach(([src, tgt, excludePattern]) => {
+    // 使用函數型 replace，對每個 match 個別判斷語境
+    const srcRegex = new RegExp(src, 'g');
+    processed = processed.replace(srcRegex, (match, offset) => {
+      if (excludePattern) {
+        // 取 match 前後各 6 個字的窗口，判斷是否命中排除模式
+        const window = processed.substring(
+          Math.max(0, offset - 6),
+          Math.min(processed.length, offset + src.length + 6)
+        );
+        if (excludePattern.test(window)) return match; // 命中排除 → 保留原字
+      }
+      return tgt;
+    });
   });
+
   return processed;
 }
 
-// ────────────────────────────────────────────
-// Google 翻譯（免費，無需 API Key）
-// ────────────────────────────────────────────
-async function translateNow() {
-  const inputEl = document.getElementById('input-text');
+// ════════════════════════════════════════════════════════
+// 快捷短語資料庫（中/英/日）
+// ════════════════════════════════════════════════════════
+const PHRASES = {
+  '搭訕': [
+    { en: "Hey, you're really cute.", zh: "嘿，你真的很帥。", ja: "ねえ、あなたって本当にかっこいいね。" },
+    { en: "Are you into guys?", zh: "你喜歡男生嗎？", ja: "男が好きですか？" },
+    { en: "Mind if I join you?", zh: "我可以過來陪你嗎？", ja: "一緒にいてもいいですか？" },
+    { en: "Can I buy you a drink?", zh: "我可以請你喝一杯嗎？", ja: "一杯おごってもいいですか？" },
+    { en: "Are you here alone?", zh: "你一個人來的嗎？", ja: "一人で来たんですか？" },
+    { en: "Can I have your number?", zh: "可以給我你的聯絡方式嗎？", ja: "連絡先を教えてもらえますか？" },
+  ],
+  '角色確認': [
+    { en: "Are you a top or bottom?", zh: "你是 1 號還是 0 號？", ja: "攻めですか、受けですか？" },
+    { en: "I'm a vers bottom.", zh: "我是不分偏 0。", ja: "僕は両刀で受け寄りです。" },
+    { en: "I'm a strict top.", zh: "我是純 1。", ja: "僕は完全攻めです。" },
+    { en: "I'm versatile.", zh: "我不分。", ja: "僕は両刀です。" },
+    { en: "Are you Dom or sub?", zh: "你是支配者還是臣服者？", ja: "DomですかSubですか？" },
+    { en: "I'm a sub looking for a Dom.", zh: "我是 sub，在找支配者。", ja: "僕はSubでDomを探しています。" },
+  ],
+  '玩法興趣': [
+    { en: "Are you into BDSM?", zh: "你有在玩 BDSM 嗎？", ja: "BDSMはやりますか？" },
+    { en: "I'm into rope bondage.", zh: "我喜歡繩縛。", ja: "緊縛が好きです。" },
+    { en: "I like light bondage.", zh: "我喜歡輕度束縛。", ja: "軽めの拘束が好きです。" },
+    { en: "I'm a Rigger.", zh: "我是繩師。", ja: "僕は縄師です。" },
+    { en: "I enjoy impact play.", zh: "我喜歡衝擊遊戲。", ja: "打撃プレイが好きです。" },
+    { en: "Are you into sensation play?", zh: "你喜歡感官遊戲嗎？", ja: "感覚プレイは好きですか？" },
+    { en: "I'm into wax play.", zh: "我喜歡滴蠟。", ja: "ワックスプレイが好きです。" },
+  ],
+  '邊界確認': [
+    { en: "What are your limits?", zh: "你有哪些底線？", ja: "あなたの限界は何ですか？" },
+    { en: "Do you have a safeword?", zh: "你有安全詞嗎？", ja: "安全言葉はありますか？" },
+    { en: "Is this okay with you?", zh: "你覺得這樣可以嗎？", ja: "これで大丈夫ですか？" },
+    { en: "Are you comfortable?", zh: "你還舒服嗎？", ja: "快適ですか？" },
+    { en: "Do you want to stop?", zh: "你想停下來嗎？", ja: "止めたいですか？" },
+    { en: "Let's talk about boundaries first.", zh: "我們先聊一下邊界。", ja: "まず境界について話しましょう。" },
+  ],
+  '邀約': [
+    { en: "Wanna hook up?", zh: "要約嗎？", ja: "会いませんか？" },
+    { en: "Want to get out of here?", zh: "要離開這裡去別的地方嗎？", ja: "ここを出ますか？" },
+    { en: "Are you hosting?", zh: "你可以提供場地嗎？", ja: "場所は提供できますか？" },
+    { en: "I'm not hosting tonight.", zh: "我今晚沒辦法提供場地。", ja: "今夜は場所を提供できません。" },
+    { en: "Let's meet up sometime.", zh: "找個時間見面吧。", ja: "いつか会いましょう。" },
+    { en: "Are you on Grindr?", zh: "你有在用 Grindr 嗎？", ja: "Grindrを使っていますか？" },
+  ],
+};
+
+// ════════════════════════════════════════════════════════
+// 語言設定
+// ════════════════════════════════════════════════════════
+const LANG_LIST = [
+  { code: 'zh', label: '中文', gtCode: 'zh-TW', whisperCode: 'zh' },
+  { code: 'en', label: 'EN',   gtCode: 'en',    whisperCode: 'en' },
+  { code: 'ja', label: '日文', gtCode: 'ja',    whisperCode: 'ja' },
+];
+
+// 狀態
+const state = {
+  top:    { lang: 'en' },   // 對方語言（預設英文）
+  bottom: { lang: 'zh' },   // 自己語言（預設中文）
+  recording: null,           // 'top' | 'bottom' | null
+  mediaRecorder: null,
+  audioChunks: [],
+};
+
+let groqApiKey   = localStorage.getItem('groq_api_key')   || '';
+let openaiApiKey = localStorage.getItem('openai_api_key') || '';
+let currentPhraseCategory = Object.keys(PHRASES)[0];
+let phrasesOpen = false;
+
+// ════════════════════════════════════════════════════════
+// 初始化
+// ════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  buildLangSelectors();
+  buildTabs();
+  renderPhrases(currentPhraseCategory);
+  if (!groqApiKey) openSettings();
+});
+
+// ── 語言選擇器 ──
+function buildLangSelectors() {
+  ['top', 'bottom'].forEach(side => {
+    const container = document.getElementById(`${side}-langs`);
+    container.innerHTML = '';
+    LANG_LIST.forEach(lang => {
+      const btn = document.createElement('button');
+      btn.className = 'lang-btn' + (state[side].lang === lang.code ? ' active' : '');
+      btn.textContent = lang.label;
+      btn.onclick = () => setLang(side, lang.code);
+      container.appendChild(btn);
+    });
+  });
+  updatePlaceholders();
+}
+
+function setLang(side, code) {
+  state[side].lang = code;
+  buildLangSelectors();
+  updatePlaceholders();
+  clearSide(side);
+}
+
+function updatePlaceholders() {
+  const getLangName = code => LANG_LIST.find(l => l.code === code)?.label || '';
+  const topName    = getLangName(state.top.lang);
+  const bottomName = getLangName(state.bottom.lang);
+
+  const topInput = document.getElementById('top-input');
+  const botInput = document.getElementById('bottom-input');
+
+  if (state.top.lang === 'zh') {
+    topInput.placeholder = '在這裡輸入中文，或按麥克風…';
+  } else if (state.top.lang === 'ja') {
+    topInput.placeholder = 'ここに入力するか、マイクを押して…';
+  } else {
+    topInput.placeholder = 'Type here, or tap mic…';
+  }
+
+  if (state.bottom.lang === 'zh') {
+    botInput.placeholder = '在這裡輸入中文，或按麥克風說話…';
+  } else if (state.bottom.lang === 'ja') {
+    botInput.placeholder = 'ここに入力するか、マイクを押して…';
+  } else {
+    botInput.placeholder = 'Type here, or tap mic…';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+// 翻譯（主入口）
+// 優先使用 GPT-4o-mini；無 OpenAI Key 時 fallback Google Translate
+// ════════════════════════════════════════════════════════
+async function doTranslate(side) {
+  const inputEl = document.getElementById(`${side}-input`);
   const rawText = inputEl.value.trim();
   if (!rawText) { showToast('請輸入要翻譯的文字'); return; }
 
-  setStatus('翻譯中…');
+  const fromLang    = side === 'bottom' ? state.bottom.lang : state.top.lang;
+  const toLang      = side === 'bottom' ? state.top.lang    : state.bottom.lang;
+  const resultSide  = side === 'bottom' ? 'top' : 'bottom';
+  const fromLangObj = LANG_LIST.find(l => l.code === fromLang);
+  const toLangObj   = LANG_LIST.find(l => l.code === toLang);
 
-  const isZhEn = translationMode === 'zh-en';
-  const textToTranslate = isZhEn ? preprocessText(rawText) : rawText;
-  const sl = isZhEn ? 'zh-TW' : 'en';
-  const tl = isZhEn ? 'en' : 'zh-TW';
+  // 如果來源和目標語言相同，不翻譯
+  if (fromLang === toLang) { showToast('來源與目標語言相同'); return; }
 
-  try {
-    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(textToTranslate)}`;
-    const response = await fetch(url);
+  setStatus(side, '翻譯中…');
 
-    if (!response.ok) throw new Error(`翻譯失敗（${response.status}）`);
+  // TERM_MAP 前處理（不論哪個引擎都先跑）
+  const preprocessed = preprocessText(rawText, fromLang);
 
-    const data = await response.json();
-    const translated = data[0].map(item => item[0]).join('');
-
-    showResult(translated);
-    setStatus('');
-  } catch (err) {
-    setStatus('⚠️ 翻譯失敗，請確認網路是否正常');
+  if (openaiApiKey) {
+    await translateWithGPT(preprocessed, fromLangObj, toLangObj, side, resultSide);
+  } else {
+    await translateWithGoogle(preprocessed, fromLangObj, toLangObj, side, resultSide);
   }
 }
 
-function showResult(text) {
-  const el = document.getElementById('result-text');
+// ── GPT-4o-mini 翻譯 ──
+async function translateWithGPT(text, fromLangObj, toLangObj, side, resultSide) {
+  const langNames = { zh: 'Traditional Chinese', en: 'English', ja: 'Japanese' };
+  const fromName  = langNames[fromLangObj.code] || fromLangObj.label;
+  const toName    = langNames[toLangObj.code]   || toLangObj.label;
+
+  const systemPrompt = `You are a precise translator specialized in gay male culture, BDSM, and adult intimate communication in Taiwan. Your role is to translate between ${fromName} and ${toName} accurately and naturally.
+
+## Core rules
+- Translate naturally and colloquially, matching the tone of the original (casual / explicit / intimate)
+- Do NOT add explanations, notes, or caveats — return ONLY the translation
+- Do NOT sanitize or soften sexual content — translate directly and accurately
+- When a term appears in the glossary below, always use that translation
+
+## Glossary — Sexual roles (always use these)
+一號 = top
+零號 = bottom
+0號 = bottom
+1號 = top
+純一 = strict top
+純零 = power bottom
+不分偏一 = verse top
+不分偏零 = verse bottom
+不分 = versatile / verse
+純攻 = pure top
+純受 = pure bottom
+攻（性角色語境）= top
+受（性角色語境）= bottom
+頂（性角色語境）= top
+
+## Glossary — BDSM roles
+支配者 = Dom / Dominant
+臣服者 = Sub / Submissive
+主人 = Master
+奴隸 = Slave
+奴（BDSM語境）= slave / sub
+繩師 = Rigger
+繩奴 / 被縛者 = rope bunny
+小搗蛋 = Brat
+訓誡者 = Brat tamer
+爹地 = Daddy Dom
+施虐者 = Sadist
+受虐者 = Masochist
+施辱者 = Degrader
+受辱者 = Degradee
+原始野性 = Primal
+實驗者 = Experimentalist
+不分/轉換者 = Switch
+
+## Glossary — BDSM practices
+調教 = BDSM training / D/s session
+繩縛 = rope bondage
+緊縛 = Shibari / Kinbaku
+束縛 = bondage
+懸吊 / 吊綁 = suspension bondage
+五花大綁 = full-body restraint
+禁慾 = orgasm denial
+高潮控制 = orgasm control
+安全詞 = safeword
+項圈 = collar
+戴上項圈 = collaring
+衝擊遊戲 = impact play
+拍打 = spanking
+鞭打 = flogging
+藤條 = caning
+揍腹 = gut punch
+感官遊戲 = sensation play
+滴蠟 = wax play
+電擊遊戲 = electrical play
+搔癢 / 癢刑 = tickle torture
+虐蛋 = CBT (cock and ball torture)
+羞辱 = humiliation / degradation
+心理虐戀 = psychological S&M
+恐懼遊戲 = fear play
+挑逗與拒絕 = tease and denial
+感官剝奪 = sensory deprivation
+束具 = restraints
+前列腺高潮 = prostate orgasm
+前列腺開發 = prostate play
+幹射體質 / 乾射體質 = hands-free orgasm potential
+幹射 / 乾射 = hands-free orgasm
+尿道插入 = urethral sounding / urethral play
+尿道調教 = urethral training
+年齡扮演 = age play
+寵物扮演 = pet play
+服務 = service
+權力交換 = power exchange
+命令與服從 = commands and obedience
+協議與儀式 = protocol and rituals
+
+## Glossary — Body parts (gay male context)
+穴 / 後庭 / 菊花 / 後穴 / 菊穴 = hole / ass
+屁眼 = hole
+肛門 = anus
+前列腺 = prostate
+雞雞 / 老二 = cock / dick
+玩後面 / 玩穴 = anal play
+玩前面 = cock play
+被玩後面 / 被玩穴 = anal play (receiving)
+
+## Glossary — Body types (gay community)
+熊族 / 熊 = Bear
+小熊 = Cub
+水獺 = Otter
+狼 = Wolf
+肌肉男 / 壯雄 = Jock / Muscular guy
+猛男 = Hunk
+瘦子 / 竹竿 = Twink
+大叔 = Daddy / Older gay man
+體育系 = College athlete / Jock
+
+## Glossary — Gender expression
+MAN款 / man系 / 陽剛型 = Masc / Masculine gay
+娘娘腔 / 娘 / CC = Femme gay / Femme
+陰柔男 = Femme-presenting gay
+偽娘 = Femboy
+中性 = Androgynous
+
+## Glossary — Identity & community
+同志 = gay man
+彎的 = gay / queer
+直的 = straight
+假直男 / 偽直男 = closeted guy
+假直 / 偽直 = closeted
+出櫃 = come out
+未出櫃 = closeted
+香草 = vanilla
+
+## Glossary — Taiwan gay dating culture
+約砲 = hook up
+在地（有場地）= hosting
+出征（去對方家）= traveling
+鬼島（消失不回訊）= ghosting
+把到 = scored / picked up
+乾爹 = sugar daddy
+肉食（主動型）= sexually assertive
+草食（被動型）= passive / low-key
+色畜 = thirsty
+故作矜持 = playing hard to get
+裝矜持 = acting all innocent
+社畜 = corporate slave / office drone`;
+
+  try {
+    const res = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user',   content: text },
+        ],
+        temperature: 0.3,
+        max_tokens: 1024,
+      }),
+    });
+
+    if (res.status === 401) {
+      setStatus(side, '⚠️ OpenAI Key 錯誤，請重新設定');
+      openSettings();
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+    const data       = await res.json();
+    const translated = data.choices?.[0]?.message?.content?.trim() || '';
+    if (!translated) throw new Error('空回應');
+
+    showResult(resultSide, translated, 'GPT-4o-mini');
+    setStatus(side, '');
+  } catch (err) {
+    setStatus(side, '⚠️ GPT 翻譯失敗，切換至 Google…');
+    // 自動 fallback
+    const fromLangObj2 = LANG_LIST.find(l => l.code === (side === 'bottom' ? state.bottom.lang : state.top.lang));
+    const toLangObj2   = LANG_LIST.find(l => l.code === (side === 'bottom' ? state.top.lang    : state.bottom.lang));
+    await translateWithGoogle(text, fromLangObj2, toLangObj2, side, resultSide);
+  }
+}
+
+// ── Google Translate fallback ──
+async function translateWithGoogle(text, fromLangObj, toLangObj, side, resultSide) {
+  const sl = fromLangObj.gtCode;
+  const tl = toLangObj.gtCode;
+
+  try {
+    const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=${sl}&tl=${tl}&dt=t&q=${encodeURIComponent(text)}`;
+    const res  = await fetch(url);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data       = await res.json();
+    const translated = data[0].map(item => item[0]).join('');
+    showResult(resultSide, translated, 'Google Translate');
+    setStatus(side, '');
+  } catch (err) {
+    setStatus(side, '⚠️ 翻譯失敗，請確認網路');
+  }
+}
+
+function showResult(side, text, engine = '') {
+  const el = document.getElementById(`${side}-result`);
   el.textContent = text;
-  el.classList.remove('placeholder');
-  document.getElementById('copy-btn').style.display = 'block';
+  el.classList.remove('result-placeholder');
+  document.getElementById(`${side}-copy-row`).style.display = 'flex';
+  const label = document.getElementById(`${side}-engine-label`);
+  if (label) label.textContent = engine ? `via ${engine}` : '';
 }
 
-function clearAll() {
-  const ta = document.getElementById('input-text');
-  ta.value = '';
-  ta.style.height = '60px';
-  const el = document.getElementById('result-text');
-  el.textContent = '翻譯結果會顯示在這裡';
-  el.classList.add('placeholder');
-  document.getElementById('copy-btn').style.display = 'none';
-  setStatus('');
+function clearSide(side) {
+  const inputEl = document.getElementById(`${side}-input`);
+  inputEl.value = '';
+  inputEl.style.height = '42px';
+  const el = document.getElementById(`${side}-result`);
+  el.textContent = '翻譯結果顯示在這裡';
+  el.classList.add('result-placeholder');
+  document.getElementById(`${side}-copy-row`).style.display = 'none';
+  setStatus(side, '');
 }
 
-function copyResult() {
-  const text = document.getElementById('result-text').textContent;
+function copyText(side) {
+  const text = document.getElementById(`${side}-result`).textContent;
   navigator.clipboard.writeText(text).then(() => showToast('已複製！'));
 }
 
-// ────────────────────────────────────────────
-// 語音錄音 + Groq 辨識
-// ────────────────────────────────────────────
-function toggleMic() {
+// ════════════════════════════════════════════════════════
+// 語音錄音 + Groq Whisper (verbose_json)
+// ════════════════════════════════════════════════════════
+function toggleMic(side) {
   if (!groqApiKey) { openSettings(); return; }
-  if (isRecording) {
+
+  // 若另一側正在錄音，先停掉
+  if (state.recording && state.recording !== side) {
+    forceStopRecording();
+  }
+
+  if (state.recording === side) {
     stopRecording();
   } else {
-    const ta = document.getElementById('input-text');
-    ta.value = '';
-    ta.style.height = '60px';
-    startRecording();
+    startRecording(side);
   }
 }
 
-async function startRecording() {
+async function startRecording(side) {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    audioChunks = [];
+    state.audioChunks = [];
 
     const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : 'audio/mp4';
-    mediaRecorder = new MediaRecorder(stream, { mimeType });
+    state.mediaRecorder = new MediaRecorder(stream, { mimeType });
 
-    mediaRecorder.ondataavailable = (e) => {
-      if (e.data.size > 0) audioChunks.push(e.data);
+    state.mediaRecorder.ondataavailable = e => {
+      if (e.data.size > 0) state.audioChunks.push(e.data);
     };
 
-    mediaRecorder.onstop = async () => {
+    state.mediaRecorder.onstop = async () => {
       stream.getTracks().forEach(t => t.stop());
-      const audioBlob = new Blob(audioChunks, { type: mimeType });
-      await transcribeWithGroq(audioBlob, mimeType);
+      const audioBlob = new Blob(state.audioChunks, { type: mimeType });
+      await transcribeWithGroq(audioBlob, mimeType, side);
     };
 
-    mediaRecorder.start();
-    isRecording = true;
-    document.getElementById('mic-btn').classList.add('listening');
-    setStatus('🔴 錄音中… 說完再按麥克風停止');
+    state.mediaRecorder.start();
+    state.recording = side;
+
+    document.getElementById(`${side}-mic-btn`).classList.add('listening');
+    setStatus(side, '🔴 錄音中… 說完再按麥克風停止');
   } catch (err) {
-    setStatus('⚠️ 無法使用麥克風，請確認已授權');
+    setStatus(side, '⚠️ 無法使用麥克風，請確認已授權');
   }
 }
 
 function stopRecording() {
-  if (mediaRecorder && isRecording) {
-    mediaRecorder.stop();
-    isRecording = false;
-    document.getElementById('mic-btn').classList.remove('listening');
-    setStatus('辨識中…');
+  if (state.mediaRecorder && state.recording) {
+    const side = state.recording;
+    state.mediaRecorder.stop();
+    state.recording = null;
+    document.getElementById(`${side}-mic-btn`).classList.remove('listening');
+    setStatus(side, '辨識中…');
   }
 }
 
-async function transcribeWithGroq(audioBlob, mimeType) {
-  const ext = mimeType.includes('webm') ? 'webm' : 'mp4';
+function forceStopRecording() {
+  if (state.mediaRecorder && state.recording) {
+    const side = state.recording;
+    state.mediaRecorder.stop();
+    state.recording = null;
+    document.getElementById(`${side}-mic-btn`).classList.remove('listening');
+    setStatus(side, '');
+  }
+}
+
+async function transcribeWithGroq(audioBlob, mimeType, side) {
+  const ext  = mimeType.includes('webm') ? 'webm' : 'mp4';
+  const lang = LANG_LIST.find(l => l.code === (side === 'bottom' ? state.bottom.lang : state.top.lang));
+
+  // 針對不同語言建構 prompt，提升辨識品質
+  const promptMap = {
+    zh: 'Taiwan Mandarin with mixed English, BDSM terminology: Dom, Sub, vers, bottom, top, Rigger, safeword, 不分, 繩縛, 調教, 臣服者, 支配者, 安全詞, 項圈',
+    en: 'BDSM terminology: Dom, Sub, vers, bottom, top, Rigger, safeword, bondage, collar, impact play',
+    ja: 'BDSMの用語: Dom, Sub, 攻め, 受け, 両刀, 縄師, 緊縛, 安全言葉, 調教, 首輪',
+  };
+  const whisperPrompt = promptMap[lang.code] || '';
+
   const formData = new FormData();
   formData.append('file', audioBlob, `audio.${ext}`);
-  const lang = translationMode === 'zh-en' ? 'zh' : 'en';
-  const prompt = translationMode === 'zh-en'
-    ? 'BDSM, Dom, Sub, vers, bottom, top, Rigger, safeword, 不分, 繩縛, 調教, 臣服者'
-    : 'BDSM, Dom, Sub, vers, bottom, top, Rigger, safeword, bondage, collar';
   formData.append('model', 'whisper-large-v3-turbo');
-  formData.append('language', lang);
-  formData.append('response_format', 'json');
-  formData.append('prompt', prompt);
+  formData.append('language', lang.whisperCode);
+  formData.append('response_format', 'verbose_json');  // ← 升級：取得段落斷句
+  formData.append('timestamp_granularities[]', 'segment');
+  formData.append('prompt', whisperPrompt);
 
   try {
-    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+    const res = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${groqApiKey}` },
-      body: formData
+      body: formData,
     });
 
-    if (response.status === 401) {
-      setStatus('⚠️ API Key 錯誤，請重新設定');
+    if (res.status === 401) {
+      setStatus(side, '⚠️ API Key 錯誤，請重新設定');
       openSettings();
       return;
     }
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
 
-    const data = await response.json();
-    const inputEl = document.getElementById('input-text');
-    inputEl.value = data.text || '';
+    const data = await res.json();
+
+    // verbose_json 回傳 segments，每段已有標點斷句
+    let finalText = '';
+    if (data.segments && data.segments.length > 0) {
+      finalText = data.segments.map(s => s.text.trim()).join(' ');
+    } else {
+      finalText = data.text || '';
+    }
+
+    const inputEl = document.getElementById(`${side}-input`);
+    inputEl.value = finalText;
     autoResize(inputEl);
-    setStatus('');
-    if (data.text) translateNow();
+    setStatus(side, '');
+
+    if (finalText) doTranslate(side);
   } catch (err) {
-    setStatus('⚠️ 辨識失敗，請確認網路是否正常');
+    setStatus(side, '⚠️ 辨識失敗，請確認網路');
   }
 }
 
-// ────────────────────────────────────────────
-// API Key 設定
-// ────────────────────────────────────────────
-function openSettings() {
-  document.getElementById('api-key-input').value = groqApiKey;
-  document.getElementById('settings-overlay').style.display = 'flex';
-}
-
-function closeSettings() {
-  document.getElementById('settings-overlay').style.display = 'none';
-}
-
-function saveApiKey() {
-  const key = document.getElementById('api-key-input').value.trim();
-  if (!key) { showToast('請輸入 API Key'); return; }
-  groqApiKey = key;
-  localStorage.setItem('groq_api_key', key);
-  closeSettings();
-  showToast('API Key 已儲存');
-}
-
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
 // 快捷短語
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
+function togglePhrases() {
+  phrasesOpen = !phrasesOpen;
+  const drawer = document.getElementById('phrases-drawer');
+  drawer.classList.toggle('open', phrasesOpen);
+  document.getElementById('phrases-toggle').textContent = phrasesOpen ? '✕ 關閉' : '💬 常用短語';
+}
+
 function buildTabs() {
-  const tabBar = document.getElementById('tab-bar');
+  const bar = document.getElementById('tab-bar');
+  bar.innerHTML = '';
   Object.keys(PHRASES).forEach((cat, i) => {
     const btn = document.createElement('button');
     btn.className = 'tab-btn' + (i === 0 ? ' active' : '');
     btn.textContent = cat;
-    btn.onclick = () => switchTab(cat, btn);
-    tabBar.appendChild(btn);
+    btn.onclick = () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentPhraseCategory = cat;
+      renderPhrases(cat);
+    };
+    bar.appendChild(btn);
   });
-}
-
-function switchTab(cat, clickedBtn) {
-  currentCategory = cat;
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  clickedBtn.classList.add('active');
-  renderPhrases(cat);
 }
 
 function renderPhrases(cat) {
-  const grid = document.getElementById('phrases-grid');
-  grid.innerHTML = '';
+  const list = document.getElementById('phrases-list');
+  list.innerHTML = '';
+  const bottomLang = state.bottom.lang;
+  const topLang    = state.top.lang;
+
   PHRASES[cat].forEach(phrase => {
     const card = document.createElement('div');
     card.className = 'phrase-card';
-    card.innerHTML = `<div class="phrase-en">${phrase.en}</div><div class="phrase-zh">${phrase.zh}</div>`;
-    card.onclick = () => usePhrase(phrase.en);
-    grid.appendChild(card);
+
+    // 主要顯示：底部使用者語言（自己那側）
+    const myText  = phrase[bottomLang] || phrase.zh || '';
+    // 翻譯顯示：頂部對方語言
+    const theirText = phrase[topLang] || phrase.en || '';
+
+    card.innerHTML = `
+      <div class="phrase-en">${theirText}</div>
+      <div class="phrase-zh">${myText}</div>
+    `;
+    card.onclick = () => {
+      showResult('top', theirText);
+      showToast('對方那側已顯示翻譯，可請對方直接閱讀');
+      if (phrasesOpen) togglePhrases();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+    list.appendChild(card);
   });
 }
 
-function usePhrase(en) {
-  showResult(en);
-  document.getElementById('input-text').value = '';
-  showToast('點擊「複製英文」給對方看');
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+// ════════════════════════════════════════════════════════
+// 設定
+// ════════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('openai-key-input').value = openaiApiKey;
+  document.getElementById('api-key-input').value    = groqApiKey;
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings() {
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+function saveApiKey() {
+  const oaiKey  = document.getElementById('openai-key-input').value.trim();
+  const groqKey = document.getElementById('api-key-input').value.trim();
+
+  // OpenAI Key 允許空白（fallback 至 Google）
+  openaiApiKey = oaiKey;
+  localStorage.setItem('openai_api_key', oaiKey);
+
+  // Groq Key 仍需填寫（語音辨識用）
+  if (!groqKey) { showToast('請填寫 Groq API Key（語音辨識需要）'); return; }
+  groqApiKey = groqKey;
+  localStorage.setItem('groq_api_key', groqKey);
+
+  closeSettings();
+  const engine = oaiKey ? 'GPT-4o-mini' : 'Google Translate';
+  showToast(`已儲存 ✓　翻譯引擎：${engine}`);
 }
 
-// ────────────────────────────────────────────
+// ════════════════════════════════════════════════════════
 // UI 工具
-// ────────────────────────────────────────────
-function setStatus(msg) {
-  document.getElementById('status-msg').textContent = msg;
+// ════════════════════════════════════════════════════════
+function setStatus(side, msg) {
+  document.getElementById(`${side}-status`).textContent = msg;
 }
 
 let toastTimer;
@@ -736,41 +1412,18 @@ function showToast(msg) {
   toast.textContent = msg;
   toast.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => toast.classList.remove('show'), 2000);
-}
-
-// ────────────────────────────────────────────
-// 翻譯方向切換
-// ────────────────────────────────────────────
-function toggleDirection() {
-  translationMode = translationMode === 'zh-en' ? 'en-zh' : 'zh-en';
-  updateDirectionUI();
-  clearAll();
-}
-
-function updateDirectionUI() {
-  const isZhEn = translationMode === 'zh-en';
-  document.getElementById('direction-btn').innerHTML = isZhEn
-    ? '中文 → English &nbsp;⇄'
-    : 'English → 中文 &nbsp;⇄';
-  document.getElementById('translate-btn').textContent = isZhEn
-    ? '翻譯成英文 →'
-    : 'Translate to 中文 →';
-  document.getElementById('input-text').placeholder = isZhEn
-    ? '在這裡輸入中文，或按麥克風說話…'
-    : 'Type English here, or tap mic to speak…';
-  document.getElementById('result-label').textContent = isZhEn ? 'English' : '中文翻譯';
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
 }
 
 function autoResize(el) {
   el.style.height = 'auto';
-  const maxH = Math.round(window.innerHeight * 0.45);
+  const maxH = Math.round(window.innerHeight * 0.30);
   el.style.height = Math.min(el.scrollHeight, maxH) + 'px';
 }
 
-// Enter 鍵觸發翻譯（桌機用）
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter' && e.ctrlKey) translateNow();
+// Enter+Ctrl 翻譯（桌機）
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && e.ctrlKey) doTranslate('bottom');
 });
 </script>
 </body>
