@@ -998,14 +998,14 @@ async function doTranslate(side) {
   const preprocessed = preprocessText(rawText, fromLang);
 
   if (openaiApiKey) {
-    await translateWithGPT(preprocessed, fromLangObj, toLangObj, side, resultSide);
+    await translateWithGPT(preprocessed, fromLangObj, toLangObj, side, resultSide, rawText);
   } else {
-    await translateWithGoogle(preprocessed, fromLangObj, toLangObj, side, resultSide);
+    await translateWithGoogle(preprocessed, fromLangObj, toLangObj, side, resultSide, rawText);
   }
 }
 
 // ── GPT-4o-mini 翻譯 ──
-async function translateWithGPT(text, fromLangObj, toLangObj, side, resultSide) {
+async function translateWithGPT(text, fromLangObj, toLangObj, side, resultSide, rawText) {
   const langNames = { zh: 'Traditional Chinese', en: 'English', ja: 'Japanese' };
   const fromName  = langNames[fromLangObj.code] || fromLangObj.label;
   const toName    = langNames[toLangObj.code]   || toLangObj.label;
@@ -1182,20 +1182,20 @@ MAN款 / man系 / 陽剛型 = Masc / Masculine gay
     if (!translated) throw new Error('空回應');
 
     showResult(resultSide, translated, 'GPT-4o-mini');
-    // 同時在操作者那側也顯示譯文，讓用戶能確認翻譯結果
-    if (resultSide !== side) showResult(side, translated, 'GPT-4o-mini');
+    // 操作者那側顯示原文（方便對照）
+    if (resultSide !== side) showResult(side, rawText || text, '');
     setStatus(side, '');
   } catch (err) {
     setStatus(side, '⚠️ GPT 翻譯失敗，切換至 Google…');
     // 自動 fallback
     const fromLangObj2 = LANG_LIST.find(l => l.code === (side === 'bottom' ? state.bottom.lang : state.top.lang));
     const toLangObj2   = LANG_LIST.find(l => l.code === (side === 'bottom' ? state.top.lang    : state.bottom.lang));
-    await translateWithGoogle(text, fromLangObj2, toLangObj2, side, resultSide);
+    await translateWithGoogle(text, fromLangObj2, toLangObj2, side, resultSide, rawText);
   }
 }
 
 // ── Google Translate fallback ──
-async function translateWithGoogle(text, fromLangObj, toLangObj, side, resultSide) {
+async function translateWithGoogle(text, fromLangObj, toLangObj, side, resultSide, rawText) {
   const sl = fromLangObj.gtCode;
   const tl = toLangObj.gtCode;
 
@@ -1206,8 +1206,8 @@ async function translateWithGoogle(text, fromLangObj, toLangObj, side, resultSid
     const data       = await res.json();
     const translated = data[0].map(item => item[0]).join('');
     showResult(resultSide, translated, 'Google Translate');
-    // 同時在操作者那側也顯示譯文
-    if (resultSide !== side) showResult(side, translated, 'Google Translate');
+    // 操作者那側顯示原文（方便對照）
+    if (resultSide !== side) showResult(side, rawText || text, '');
     setStatus(side, '');
   } catch (err) {
     setStatus(side, '⚠️ 翻譯失敗，請確認網路');
