@@ -283,6 +283,21 @@
     }
     #phrases-drawer.open { display: flex; }
 
+    /* ── 常用短語全螢幕模式 ── */
+    #app.phrases-mode #panel-top,
+    #app.phrases-mode #divider {
+      display: none;
+    }
+    #app.phrases-mode #panel-bottom .result-display,
+    #app.phrases-mode #panel-bottom .status-bar,
+    #app.phrases-mode #panel-bottom .input-row {
+      display: none;
+    }
+    #app.phrases-mode #phrases-drawer {
+      flex: 1;
+      max-height: none;
+    }
+
     .tab-bar {
       display: flex;
       gap: 6px;
@@ -1334,6 +1349,7 @@ function togglePhrases() {
   phrasesOpen = !phrasesOpen;
   const drawer = document.getElementById('phrases-drawer');
   drawer.classList.toggle('open', phrasesOpen);
+  document.getElementById('app').classList.toggle('phrases-mode', phrasesOpen);
   document.getElementById('phrases-toggle').textContent = phrasesOpen ? '✕ 關閉' : '💬 常用短語';
 }
 
