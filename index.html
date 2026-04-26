@@ -907,7 +907,8 @@ window.addEventListener('DOMContentLoaded', () => {
   buildLangSelectors();
   buildTabs();
   renderPhrases(currentPhraseCategory);
-  if (!groqApiKey) openSettings();
+  // 兩個 Key 都沒有時才強制開啟設定（有 OpenAI Key 即可翻譯）
+  if (!groqApiKey && !openaiApiKey) openSettings();
 });
 
 // ── 語言選擇器 ──
@@ -1424,14 +1425,16 @@ function saveApiKey() {
   openaiApiKey = oaiKey;
   localStorage.setItem('openai_api_key', oaiKey);
 
-  // Groq Key 仍需填寫（語音辨識用）
-  if (!groqKey) { showToast('請填寫 Groq API Key（語音辨識需要）'); return; }
-  groqApiKey = groqKey;
-  localStorage.setItem('groq_api_key', groqKey);
+  // Groq Key 用於語音辨識；未填時仍允許儲存並關閉（翻譯功能不受影響）
+  if (groqKey) {
+    groqApiKey = groqKey;
+    localStorage.setItem('groq_api_key', groqKey);
+  }
 
   closeSettings();
   const engine = oaiKey ? 'GPT-4o-mini' : 'Google Translate';
-  showToast(`已儲存 ✓　翻譯引擎：${engine}`);
+  const groqNote = groqKey ? '' : '　⚠️ 語音辨識需要 Groq Key';
+  showToast(`已儲存 ✓　翻譯引擎：${engine}${groqNote}`);
 }
 
 // ════════════════════════════════════════════════════════
