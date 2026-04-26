@@ -929,6 +929,13 @@ function buildLangSelectors() {
 
 function setLang(side, code) {
   state[side].lang = code;
+  // 若兩側語言相同，自動將另一側切換為不衝突的語言
+  const otherSide = side === 'bottom' ? 'top' : 'bottom';
+  if (state[otherSide].lang === code) {
+    // 找第一個不同的語言
+    const fallback = LANG_LIST.find(l => l.code !== code);
+    if (fallback) state[otherSide].lang = fallback.code;
+  }
   buildLangSelectors();
   updatePlaceholders();
   clearSide(side);
@@ -1175,6 +1182,8 @@ MAN款 / man系 / 陽剛型 = Masc / Masculine gay
     if (!translated) throw new Error('空回應');
 
     showResult(resultSide, translated, 'GPT-4o-mini');
+    // 同時在操作者那側也顯示譯文，讓用戶能確認翻譯結果
+    if (resultSide !== side) showResult(side, translated, 'GPT-4o-mini');
     setStatus(side, '');
   } catch (err) {
     setStatus(side, '⚠️ GPT 翻譯失敗，切換至 Google…');
@@ -1197,6 +1206,8 @@ async function translateWithGoogle(text, fromLangObj, toLangObj, side, resultSid
     const data       = await res.json();
     const translated = data[0].map(item => item[0]).join('');
     showResult(resultSide, translated, 'Google Translate');
+    // 同時在操作者那側也顯示譯文
+    if (resultSide !== side) showResult(side, translated, 'Google Translate');
     setStatus(side, '');
   } catch (err) {
     setStatus(side, '⚠️ 翻譯失敗，請確認網路');
