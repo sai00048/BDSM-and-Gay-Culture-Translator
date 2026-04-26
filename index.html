@@ -409,21 +409,14 @@
        Settings gear button
     ══════════════════════════════ */
     #gear-btn {
-      position: fixed;
-      bottom: 14px;
-      right: 14px;
-      background: var(--surface);
-      border: 1px solid var(--border);
-      border-radius: 50%;
+      background: transparent;
+      border: none;
       color: var(--text-dim);
       cursor: pointer;
-      font-size: 1.1rem;
-      height: 40px;
-      width: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 50;
+      font-size: 1rem;
+      padding: 2px 4px;
+      border-radius: 6px;
+      line-height: 1;
     }
   </style>
 </head>
@@ -453,7 +446,7 @@
     <div class="input-row">
       <button class="btn-mic" id="top-mic-btn" onclick="toggleMic('top')" title="語音輸入">🎤</button>
       <textarea id="top-input" placeholder="在這裡輸入，或按麥克風…" oninput="autoResize(this)"></textarea>
-      <button class="btn-translate" onclick="doTranslate('top')">翻譯 →</button>
+      <button class="btn-translate" id="top-translate-btn" onclick="doTranslate('top')">翻譯 →</button>
     </div>
 
   </div>
@@ -469,6 +462,7 @@
       <div style="display:flex; gap:6px; align-items:center;">
         <button id="phrases-toggle" onclick="togglePhrases()">💬 常用短語</button>
         <div class="panel-label" id="bottom-label">我</div>
+        <button id="gear-btn" onclick="openSettings()" title="API Key 設定">⚙️</button>
       </div>
     </div>
 
@@ -485,7 +479,7 @@
     <div class="input-row">
       <button class="btn-mic" id="bottom-mic-btn" onclick="toggleMic('bottom')" title="語音輸入">🎤</button>
       <textarea id="bottom-input" placeholder="在這裡輸入中文，或按麥克風說話…" oninput="autoResize(this)"></textarea>
-      <button class="btn-translate" onclick="doTranslate('bottom')">翻譯 →</button>
+      <button class="btn-translate" id="bottom-translate-btn" onclick="doTranslate('bottom')">翻譯 →</button>
     </div>
 
     <!-- 快捷短語抽屜 -->
@@ -497,9 +491,6 @@
   </div>
 
 </div>
-
-<!-- 齒輪設定按鈕 -->
-<button id="gear-btn" onclick="openSettings()" title="API Key 設定">⚙️</button>
 
 <!-- 設定 Modal -->
 <div id="settings-overlay" onclick="if(event.target===this)closeSettings()">
@@ -866,6 +857,18 @@ const LANG_LIST = [
   { code: 'ja', label: '日文', gtCode: 'ja',    whisperCode: 'ja' },
 ];
 
+const TRANSLATE_BTN_TEXT = {
+  zh: '翻譯 →',
+  en: 'Translate →',
+  ja: '翻訳 →',
+};
+
+const RESULT_PLACEHOLDER_TEXT = {
+  zh: '翻譯結果顯示在這裡',
+  en: 'Translation result will appear here',
+  ja: '翻訳結果はここに表示されます',
+};
+
 // 狀態
 const state = {
   top:    { lang: 'en' },   // 對方語言（預設英文）
@@ -914,10 +917,6 @@ function setLang(side, code) {
 }
 
 function updatePlaceholders() {
-  const getLangName = code => LANG_LIST.find(l => l.code === code)?.label || '';
-  const topName    = getLangName(state.top.lang);
-  const bottomName = getLangName(state.bottom.lang);
-
   const topInput = document.getElementById('top-input');
   const botInput = document.getElementById('bottom-input');
 
@@ -935,6 +934,18 @@ function updatePlaceholders() {
     botInput.placeholder = 'ここに入力するか、マイクを押して…';
   } else {
     botInput.placeholder = 'Type here, or tap mic…';
+  }
+
+  document.getElementById('top-translate-btn').textContent    = TRANSLATE_BTN_TEXT[state.top.lang]    || '翻譯 →';
+  document.getElementById('bottom-translate-btn').textContent = TRANSLATE_BTN_TEXT[state.bottom.lang] || '翻譯 →';
+
+  const topResult = document.getElementById('top-result');
+  const botResult = document.getElementById('bottom-result');
+  if (topResult.classList.contains('result-placeholder')) {
+    topResult.textContent = RESULT_PLACEHOLDER_TEXT[state.top.lang] || '翻譯結果顯示在這裡';
+  }
+  if (botResult.classList.contains('result-placeholder')) {
+    botResult.textContent = RESULT_PLACEHOLDER_TEXT[state.bottom.lang] || '翻譯結果顯示在這裡';
   }
 }
 
